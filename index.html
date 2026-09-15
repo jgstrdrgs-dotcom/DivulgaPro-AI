@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DivulgaPro | Plataforma de campanhas para comerciantes</title>
+    <meta
+      name="description"
+      content="Aplicativo web profissional para transformar fotos de produtos em campanhas completas para Instagram, Stories, WhatsApp, Reels e TikTok."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell" data-sidebar="aberta">
+      <aside class="sidebar" aria-label="Menu principal">
+        <div class="brand-block">
+          <div class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <path d="M9 28h7l17 8V12L16 20H9a4 4 0 0 0-4 4v0a4 4 0 0 0 4 4Z" />
+              <path d="M18 30v7a3 3 0 0 0 3 3h4l-5-10Z" />
+              <path d="M37 19l5-3M38 24h6M37 29l5 3" />
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <strong>DivulgaPro</strong>
+            <span>Transforme produtos em campanhas que vendem.</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <button class="collapse-button" id="collapseSidebar" type="button">Recolher menu</button>
+      </aside>
+
+      <div class="mobile-backdrop" id="mobileBackdrop"></div>
+
+      <section class="workspace">
+        <header class="topbar">
+          <button class="icon-button menu-button" id="openMenu" type="button" aria-label="Abrir menu">☰</button>
+          <div class="page-title">
+            <span id="breadcrumb">Dashboard</span>
+            <h1 id="pageTitle">Dashboard</h1>
+          </div>
+          <label class="search-box">
+            <span>🔎</span>
+            <input id="globalSearch" type="search" placeholder="Buscar campanha, produto ou ideia" />
+          </label>
+          <button class="icon-button" id="notificationButton" type="button" aria-label="Notificações">🔔</button>
+          <div class="profile-chip">
+            <span class="avatar">ML</span>
+            <div>
+              <strong>Moda Lima</strong>
+              <small>Loja conectada</small>
+            </div>
+          </div>
+        </header>
+
+        <main id="appContent" class="content-area" tabindex="-1"></main>
+      </section>
+    </div>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+    <div class="modal-root" id="modalRoot" aria-hidden="true"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
