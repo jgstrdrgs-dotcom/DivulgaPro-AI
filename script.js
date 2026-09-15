@@ -240,12 +240,24 @@ function renderMenu() {
 function landingPage() {
   return `<section class="landing-hero">
     <div class="hero-stage">
-      <div class="hero-center">
+      <div class="hero-copy">
         <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> Seu estúdio de campanhas com IA</div>
-        <h1>O que você deseja criar?</h1>
+        <h1>O que você<br><em>deseja criar?</em></h1>
         <p>Descreva sua ideia e transforme seu produto em uma campanha pronta para divulgar.</p>
         ${createBox()}
+        <div class="quick-heading"><span>Comece por uma ideia</span><small>ou escreva do seu jeito</small></div>
         <div class="quick-suggestions">${suggestions.map((item) => `<button class="suggestion" data-action="suggest" data-value="${item}">${item}</button>`).join("")}</div>
+      </div>
+      <div class="hero-visual" aria-label="Prévia de uma campanha criada pelo DivulgaPro AI">
+        <div class="visual-orbit orbit-one"></div><div class="visual-orbit orbit-two"></div>
+        <div class="showcase-card">
+          <div class="showcase-topline"><span><i></i> Campanha em criação</span><span>01 / 04</span></div>
+          <div class="showcase-product-art"><span class="art-shape art-shape-one"></span><span class="art-shape art-shape-two"></span><span class="art-label">MODA<br><strong>ESSENCIAL</strong></span><span class="art-star">✦</span></div>
+          <div class="showcase-copy"><span class="showcase-kicker">Campanha para Instagram</span><strong>Vista sua melhor<br>versão.</strong><span class="showcase-price">a partir de R$ 159,90</span></div>
+          <div class="showcase-footer"><span>✦ Conteúdo pronto para revisar</span><span class="showcase-arrow">↗</span></div>
+        </div>
+        <div class="floating-stat"><span class="floating-icon">✦</span><div><strong>10 modelos</strong><small>para começar agora</small></div></div>
+        <div class="floating-note"><span>+24</span><small>ideias geradas</small></div>
       </div>
     </div>
     ${modelsSection()}
