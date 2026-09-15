@@ -72,6 +72,7 @@ let campaigns = [
 
 const suggestions = [
   "Criar uma campanha",
+  "Quero divulgar um tênis feminino.",
   "Criar Stories",
   "Criar roteiro de vídeo",
   "Criar oferta",
