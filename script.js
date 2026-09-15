@@ -43,6 +43,7 @@ const state = {
   profileOpen: false,
   createDetails: {
     objective: "Gerar pedidos pelo WhatsApp",
+    channel: "WhatsApp",
     normalPrice: "189,90",
     promoPrice: "159,90",
     offer: "Condição especial da semana"
@@ -85,10 +86,10 @@ const models = [
   ["Roteiro de Reels", "Transforme o produto em um vídeo simples de gravar.", "Vídeos", "▶", "Popular", "purple"],
   ["Divulgação no WhatsApp", "Mensagens prontas para status e lista autorizada.", "WhatsApp", "◌", "Novo", "orange"],
   ["Liquidação de estoque", "Organize uma campanha para itens parados com cuidado comercial.", "Ofertas", "↘", "", "red"],
-  ["Combo promocional", "Sugira composição de produtos com preço claro.", "Ofertas", "+", "", "orange"],
+  ["Oferta de combo", "Sugira uma composição de produtos com preço claro.", "Ofertas", "+", "", "orange"],
   ["Data comemorativa", "Planeje conteúdo sazonal sem inventar informações.", "Datas comemorativas", "✧", "Novo", "pink"],
   ["Post para Instagram", "Gere uma legenda e estrutura visual para feed.", "Instagram", "◎", "", "purple"],
-  ["Apresentação de produto", "Mostre características reais com linguagem simples.", "Campanhas", "□", "", "orange"]
+  ["Apresentação de produto", "Mostre características reais com linguagem simples.", "Produtos", "□", "", "orange"]
 ];
 
 const campaignGeneratorService = {
@@ -115,11 +116,13 @@ const campaignGeneratorService = {
     };
     const ideia = input.prompt || `Divulgar ${product.nome}`;
     const objetivo = input.objetivo || "Gerar pedidos pelo WhatsApp";
+    const canal = input.canal || "WhatsApp";
     const oferta = input.offer?.trim() || "Condição especial da semana";
     return {
       produto: product,
       titulo: ideia,
       objetivo,
+      canal,
       publico: product.publico,
       status: "Pronta para revisar",
       data: new Date().toLocaleDateString("pt-BR"),
@@ -270,6 +273,7 @@ function createBox() {
     <div class="create-details ${showDetails ? "visible" : ""}">
       <label class="field"><span>Produto</span><select id="quickProduct">${products.map((p) => `<option value="${p.id}" ${p.id === state.selectedProductId ? "selected" : ""}>${p.nome}</option>`).join("")}</select></label>
       <label class="field"><span>Objetivo</span><select id="quickGoal">${["Gerar pedidos pelo WhatsApp", "Promoção", "Lançamento", "Post para Instagram", "Roteiro de vídeo"].map((goal) => `<option ${goal === details.objective ? "selected" : ""}>${goal}</option>`).join("")}</select></label>
+      <label class="field"><span>Canal de divulgação</span><select id="quickChannel">${["WhatsApp", "Instagram", "Stories", "Reels", "TikTok"].map((channel) => `<option ${channel === details.channel ? "selected" : ""}>${channel}</option>`).join("")}</select></label>
       <label class="field"><span>Preço normal</span><input id="quickPrice" inputmode="decimal" value="${escapeHtml(details.normalPrice)}"></label>
       <label class="field"><span>Preço promocional</span><input id="quickPromo" inputmode="decimal" value="${escapeHtml(details.promoPrice)}"></label>
       <label class="field full-width"><span>Oferta ou condição</span><input id="quickOffer" value="${escapeHtml(details.offer)}"></label>
@@ -294,7 +298,7 @@ function modelsSection() {
     const byFilter = state.modelFilter === "Todos" || category === state.modelFilter;
     return byFilter && name.toLowerCase().includes(search);
   });
-  const filters = ["Todos", "Campanhas", "Stories", "Vídeos", "WhatsApp", "Instagram", "Ofertas", "Datas comemorativas"];
+  const filters = ["Todos", "Campanhas", "Stories", "Vídeos", "Instagram", "WhatsApp", "Ofertas", "Datas comemorativas", "Produtos"];
   return `<section class="models-gallery">
     <div class="model-toolbar">
       <div><span class="section-kicker">Modelos inteligentes</span><h2>Comece com um modelo</h2><p class="muted">Escolha um ponto de partida e personalize sua campanha.</p></div>
@@ -495,6 +499,8 @@ function bindDynamicInputs() {
   });
   const quickGoal = document.querySelector("#quickGoal");
   if (quickGoal) quickGoal.addEventListener("change", () => { state.createDetails.objective = quickGoal.value; });
+  const quickChannel = document.querySelector("#quickChannel");
+  if (quickChannel) quickChannel.addEventListener("change", () => { state.createDetails.channel = quickChannel.value; });
   const quickPrice = document.querySelector("#quickPrice");
   if (quickPrice) quickPrice.addEventListener("input", () => { state.createDetails.normalPrice = quickPrice.value; });
   const quickPromo = document.querySelector("#quickPromo");
@@ -541,6 +547,8 @@ function createCampaign() {
   const quickOffer = document.querySelector("#quickOffer");
   if (quickProduct) state.selectedProductId = Number(quickProduct.value);
   if (quickGoal) state.createDetails.objective = quickGoal.value;
+  const quickChannel = document.querySelector("#quickChannel");
+  if (quickChannel) state.createDetails.channel = quickChannel.value;
   if (quickPrice) state.createDetails.normalPrice = quickPrice.value;
   if (quickPromo) state.createDetails.promoPrice = quickPromo.value;
   if (quickOffer) state.createDetails.offer = quickOffer.value;
@@ -561,11 +569,12 @@ function createCampaign() {
       productId: state.selectedProductId,
       prompt: state.prompt,
       objetivo: state.createDetails.objective,
+      canal: state.createDetails.channel,
       normalPrice: state.createDetails.normalPrice,
       promoPrice: state.createDetails.promoPrice,
       offer: state.createDetails.offer
     });
-    campaigns = [{ nome: state.prompt, canal: state.createDetails.objective, status: "Pronta", data: "Agora" }, ...campaigns].slice(0, 6);
+    campaigns = [{ nome: state.prompt, canal: state.createDetails.channel, status: "Pronta", data: "Agora" }, ...campaigns].slice(0, 6);
     state.status = "success";
     state.activeTab = "estrategia";
     state.campaignStep = 5;
