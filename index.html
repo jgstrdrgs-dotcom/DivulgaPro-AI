@@ -11,7 +11,10 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="announcement">Crie campanhas profissionais para seus produtos em poucos minutos.</div>
+    <div class="announcement" role="status">
+      <span class="announcement-copy"><span class="announcement-spark" aria-hidden="true">✦</span> Transforme seus produtos em campanhas profissionais com o DivulgaPro AI.</span>
+      <button class="announcement-link" data-action="toast" data-message="O DivulgaPro AI organiza sua ideia em uma campanha pronta para revisar." type="button">Saiba mais</button>
+    </div>
 
     <div class="app-shell landing-mode" data-sidebar="aberta" data-theme="claro">
       <aside class="sidebar" aria-label="Menu principal">
@@ -36,10 +39,11 @@
 
       <section class="workspace">
         <header class="topbar">
-          <button class="icon-button menu-button" id="openMenu" type="button" aria-label="Abrir menu">☰</button>
+          <button class="icon-button menu-button" id="openMenu" type="button" aria-label="Abrir menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
           <a class="top-logo" href="#" data-action="home" aria-label="Ir para o início">
-            <span class="mini-logo">✦</span>
+            <span class="mini-logo" aria-hidden="true"><span class="logo-spark">✦</span></span>
             <strong>DivulgaPro AI</strong>
+            <span class="beta-badge">IA</span>
           </a>
           <div class="page-title">
             <span id="breadcrumb">Início</span>
@@ -49,13 +53,19 @@
             <span>Buscar</span>
             <input id="globalSearch" type="search" placeholder="Buscar campanha, produto ou ideia" />
           </label>
-          <button class="small-button" data-action="toast" data-message="Central de ajuda aberta na simulação." type="button">Ajuda</button>
-          <button class="icon-button" id="notificationButton" type="button" aria-label="Notificações">•</button>
-          <div class="profile-chip">
-            <span class="avatar">ML</span>
-            <div>
+          <button class="small-button header-help" data-action="toast" data-message="Central de ajuda aberta na simulação." type="button"><span class="icon icon-help" aria-hidden="true"></span> Ajuda</button>
+          <button class="icon-button notification-button" id="notificationButton" type="button" aria-label="Notificações"><span class="icon icon-bell" aria-hidden="true"></span><span class="notification-dot" aria-hidden="true"></span></button>
+          <div class="profile-wrap">
+            <button class="profile-chip" id="profileButton" type="button" aria-expanded="false" aria-controls="profileMenu">
+              <span class="avatar">ML</span>
+              <span class="profile-copy"><strong>Moda Lima</strong><small>Loja conectada</small></span>
+              <span class="profile-chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div class="profile-menu" id="profileMenu" hidden>
               <strong>Moda Lima</strong>
-              <small>Loja conectada</small>
+              <span class="muted">Plano profissional</span>
+              <button data-action="page" data-page="marca" type="button">Identidade da marca</button>
+              <button data-action="page" data-page="configuracoes" type="button">Configurações</button>
             </div>
           </div>
         </header>
