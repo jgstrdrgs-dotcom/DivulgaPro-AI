@@ -4,37 +4,46 @@ const pageTitle = document.querySelector("#pageTitle");
 const breadcrumb = document.querySelector("#breadcrumb");
 const toastStack = document.querySelector("#toastStack");
 
+const icons = {
+  home: "⌂", nova: "✦", campanhas: "▦", produtos: "□", stories: "▯", video: "▶",
+  texto: "T", whats: "◌", calendario: "◫", calc: "%", ideias: "?", marca: "◆", config: "⚙"
+};
+
 const menuItems = [
-  ["dashboard", "📊", "Dashboard"],
-  ["nova-campanha", "✨", "Nova campanha"],
-  ["campanhas", "🗂️", "Minhas campanhas"],
-  ["produtos", "📦", "Produtos"],
-  ["calendario", "🗓️", "Calendário de conteúdo"],
-  ["roteiros", "🎬", "Roteiros de vídeos"],
-  ["stories", "📱", "Stories"],
-  ["legendas", "✍️", "Legendas e textos"],
-  ["whatsapp", "💬", "WhatsApp"],
-  ["calculadora", "🧮", "Calculadora de ofertas"],
-  ["ideias", "💡", "Banco de ideias"],
-  ["marca", "🎨", "Identidade da marca"],
-  ["configuracoes", "⚙️", "Configurações"]
+  ["inicio", icons.home, "Início"],
+  ["nova-campanha", icons.nova, "Nova campanha"],
+  ["campanhas", icons.campanhas, "Minhas campanhas"],
+  ["produtos", icons.produtos, "Produtos"],
+  ["stories", icons.stories, "Stories"],
+  ["roteiros", icons.video, "Roteiros de vídeos"],
+  ["legendas", icons.texto, "Legendas"],
+  ["whatsapp", icons.whats, "WhatsApp"],
+  ["calendario", icons.calendario, "Calendário de conteúdo"],
+  ["calculadora", icons.calc, "Calculadora de ofertas"],
+  ["ideias", icons.ideias, "Banco de ideias"],
+  ["marca", icons.marca, "Identidade da marca"],
+  ["configuracoes", icons.config, "Configurações"]
 ];
 
 const state = {
-  page: "dashboard",
+  page: "inicio",
+  panel: false,
+  prompt: "",
+  modelFilter: "Todos",
+  modelSearch: "",
   campaignStep: 1,
   activeTab: "estrategia",
-  uploads: [],
   selectedProductId: 1,
-  search: "",
+  uploads: [],
+  theme: "claro",
+  status: "idle",
   brand: {
     empresa: "Moda Lima",
     segmento: "Loja de roupas",
     cidade: "Campinas",
     whatsapp: "(19) 98888-2211",
     instagram: "@modalima",
-    tom: "elegante",
-    cor: "#FF6B00"
+    tom: "elegante"
   }
 };
 
@@ -50,101 +59,128 @@ const campaigns = [
   { nome: "Bolsa Mel no combo presente", canal: "Feed", status: "Pronta", data: "12/09" }
 ];
 
+const suggestions = [
+  "Criar uma campanha",
+  "Criar Stories",
+  "Criar roteiro de vídeo",
+  "Criar oferta",
+  "Criar publicação para Instagram",
+  "Criar divulgação para WhatsApp"
+];
+
+const models = [
+  ["Campanha de lançamento", "Apresente um produto novo com contexto, benefício e chamada para contato.", "Produtos"],
+  ["Promoção relâmpago", "Monte uma oferta objetiva sem prometer resultado ou escassez falsa.", "Ofertas"],
+  ["Stories para produto", "Crie uma sequência curta para chamar atenção e levar ao WhatsApp.", "Stories"],
+  ["Roteiro de Reels", "Transforme o produto em um vídeo simples de gravar.", "Vídeos"],
+  ["Divulgação para WhatsApp", "Mensagens prontas para status e lista autorizada.", "WhatsApp"],
+  ["Liquidação de estoque", "Organize uma campanha para itens parados com cuidado comercial.", "Ofertas"],
+  ["Oferta de combo", "Sugira composição de produtos com preço claro.", "Ofertas"],
+  ["Campanha para data comemorativa", "Planeje conteúdo sazonal sem inventar informações.", "Datas comemorativas"],
+  ["Post para Instagram", "Gere uma legenda e estrutura visual para feed.", "Instagram"],
+  ["Apresentação de produto", "Mostre características reais com linguagem simples.", "Produtos"]
+];
+
 const campaignGeneratorService = {
   rules: [
-    "Usar somente dados fornecidos.",
-    "Nunca inventar características, avaliações, estoque ou descontos.",
-    "Nunca prometer viralização ou venda garantida.",
-    "Não sugerir escassez falsa.",
-    "Responder sempre em português do Brasil."
+    "Usar apenas informações fornecidas.",
+    "Não inventar preço, estoque, características, depoimentos ou avaliações.",
+    "Não prometer viralização, vendas garantidas ou escassez falsa.",
+    "Criar instruções práticas e detalhadas em português do Brasil.",
+    "Separar cada Story individualmente e adaptar ao segmento da loja.",
+    "Pedir informações quando faltarem dados importantes."
   ],
-  generate(input) {
+  generate(input = {}) {
     const product = products.find((item) => item.id === Number(input.productId)) || products[0];
+    const ideia = input.prompt || `Divulgar ${product.nome}`;
     return {
+      produto: product,
+      titulo: ideia,
+      objetivo: input.objetivo || "Gerar pedidos pelo WhatsApp",
+      publico: product.publico,
+      status: "Pronta para revisar",
+      data: new Date().toLocaleDateString("pt-BR"),
       estrategia: {
         Objetivo: input.objetivo || "Gerar pedidos pelo WhatsApp",
-        Público: input.publico || product.publico,
-        "Ângulo de venda": "Mostrar o produto como uma escolha prática, bonita e fácil de pedir.",
+        "Público-alvo": product.publico,
+        "Ângulo de venda": "Apresentar o produto com benefício claro, preço informado e convite para conversa.",
         "Benefício principal": product.desc,
         "Tom utilizado": state.brand.tom,
-        "Oferta recomendada": `De R$ ${product.preco.toFixed(2)} por R$ ${product.promo.toFixed(2)} enquanto houver estoque informado.`,
-        "Chamada principal": `Gostou do ${product.nome}? Chame no WhatsApp e tire suas dúvidas.`,
-        "Cuidados da campanha": "Confirmar disponibilidade antes de responder clientes e não prometer prazo sem conferência."
+        "Oferta recomendada": `Preço promocional informado: ${money(product.promo)}. Confirmar estoque antes de divulgar.`,
+        "Chamada principal": `Quer ver mais detalhes do ${product.nome}? Chame no WhatsApp.`,
+        "Cuidados da campanha": "Não inventar material, prazo, estoque, avaliação ou desconto adicional."
       },
       stories: [1, 2, 3, 4, 5].map((numero) => ({
         numero,
-        objetivo: ["Chamar atenção", "Apresentar o produto", "Mostrar benefício", "Preço e condição", "Chamada para WhatsApp"][numero - 1],
-        formato: numero === 4 ? "texto" : "foto ou vídeo",
+        objetivo: ["Chamar atenção", "Apresentar o produto", "Mostrar detalhe", "Informar preço", "Levar para o WhatsApp"][numero - 1],
+        tela: numero === 1 ? `Olha esse destaque da ${state.brand.empresa}` : `${product.nome} por ${money(product.promo)}`,
+        filmar: "Produto em boa luz, com fundo limpo e detalhe real visível.",
         duracao: "6 a 10 segundos",
-        tela: numero === 1 ? `Olha esse destaque da ${state.brand.empresa}` : `${product.nome} por R$ ${product.promo.toFixed(2)}`,
-        fala: `Mostre o ${product.nome} com calma e explique uma informação real do produto.`,
-        filmar: "Produto em boa luz, próximo do uso real pelo cliente.",
-        camera: "Vertical, câmera na altura do produto, sem cortar detalhes importantes.",
-        movimento: "Movimento leve de aproximação.",
-        detalhe: product.desc,
-        musica: "Clima leve e comercial.",
-        sticker: numero === 5 ? "Link ou pergunta" : "Enquete simples",
+        fala: `Mostre o ${product.nome} e explique uma informação confirmada sobre ele.`,
+        musica: "Clima moderno e comercial, em volume baixo.",
+        enquadramento: "Vertical, produto centralizado e sem cortes importantes.",
+        movimento: "Aproximação suave ou giro curto.",
         cta: "Chame no WhatsApp para consultar disponibilidade."
       })),
       roteiro: {
-        gancho: `Esse ${product.nome} resolve o look em segundos.`,
+        gancho: `Esse ${product.nome} pode ser o destaque do seu próximo atendimento.`,
         duracao: "15 a 30 segundos",
-        cenas: ["Close no produto", "Produto em uso", "Detalhe do acabamento", "Preço e chamada para contato"],
-        fala: `Se você procura uma opção prática, conheça o ${product.nome}.`,
-        tela: `${product.nome} | R$ ${product.promo.toFixed(2)}`,
-        transicoes: "Cortes secos e aproximação suave.",
-        musica: "Trilha moderna em volume baixo.",
-        legenda: `O ${product.nome} chegou na ${state.brand.empresa}. Consulte disponibilidade pelo WhatsApp.`,
+        cenas: ["Close do produto - 3s", "Produto em uso ou contexto - 6s", "Detalhe importante - 5s", "Preço e chamada - 4s"],
+        fala: `Na ${state.brand.empresa}, o ${product.nome} está disponível para quem busca ${product.publico}.`,
+        tela: `${product.nome} | ${money(product.promo)}`,
+        camera: "Gravar na vertical, com luz frontal e produto na altura dos olhos.",
+        transicao: "Cortes secos entre cenas.",
+        musica: "Trilha leve, sem competir com a fala.",
+        legenda: `${product.nome} disponível na ${state.brand.empresa}. Consulte detalhes e disponibilidade pelo WhatsApp.`,
         cta: "Enviar mensagem agora",
-        versoes: ["Sem aparecer: mãos mostrando detalhes.", "Com vendedor: apresentação direta em câmera.", "15 segundos: foco em benefício e preço.", "30 segundos: incluir detalhe, uso e condição."]
+        versoes: ["Com o comerciante aparecendo", "Sem aparecer, mostrando apenas mãos e produto", "Versão de 15 segundos", "Versão de 30 segundos"]
       },
       textos: {
-        principal: `${product.nome} disponível na ${state.brand.empresa}. Uma opção bonita e prática para quem quer comprar com segurança. Valor promocional: R$ ${product.promo.toFixed(2)}. Consulte disponibilidade pelo WhatsApp.`,
-        curta: `${product.nome} por R$ ${product.promo.toFixed(2)}. Chame no WhatsApp.`,
-        persuasiva: `Quer renovar sua escolha com praticidade? O ${product.nome} une estilo e facilidade para o dia a dia.`,
-        emojis: "🧡✨📲",
-        hashtags: "#divulgapro #lojaderoupas #modafeminina #campinas",
-        status: `${product.nome} em destaque hoje. Me chama para consultar disponibilidade.`,
-        instagram: `Novo destaque da ${state.brand.empresa}: ${product.nome}.`
+        "Legenda completa": `${product.nome} disponível na ${state.brand.empresa}. Uma opção prática para quem procura ${product.publico}. Valor informado: ${money(product.promo)}. Chame no WhatsApp para consultar disponibilidade.`,
+        "Legenda curta": `${product.nome} por ${money(product.promo)}. Consulte disponibilidade pelo WhatsApp.`,
+        "Texto para feed": `Novo destaque da loja: ${product.nome}.`,
+        "Texto para Status": `${product.nome} disponível hoje. Quer detalhes?`,
+        Hashtags: "#divulgaproai #campanhadigital #lojafisica #vendaslocais",
+        "Chamada para WhatsApp": "Chame no WhatsApp para tirar dúvidas e confirmar disponibilidade."
       },
       whatsapp: [
-        ["Status", `${product.nome} disponível hoje por R$ ${product.promo.toFixed(2)}. Quer que eu te mande detalhes?`],
-        ["Lista autorizada", `Oi! Passando para mostrar uma novidade da ${state.brand.empresa}: ${product.nome}.`],
-        ["Cliente perguntou preço", `O valor promocional informado é R$ ${product.promo.toFixed(2)}. Posso verificar disponibilidade para você?`],
-        ["Cliente interessado", "Posso separar por alguns minutos enquanto confirmamos os detalhes do pedido."],
-        ["Cliente sem resposta", "Oi! Passando para saber se ainda quer ajuda com esse produto."],
-        ["Lançamento", `Acabou de chegar: ${product.nome}.`],
-        ["Promoção", `Tem condição especial no ${product.nome}.`],
-        ["Encerramento", "A condição informada está próxima do fim. Quer confirmar disponibilidade?"],
-        ["Reativação", "Faz tempo que não conversamos. Posso te mostrar os destaques da semana?"]
+        ["Status", `${product.nome} disponível por ${money(product.promo)}. Quer que eu te mande detalhes?`],
+        ["Lista de transmissão autorizada", `Oi! Separei um destaque da ${state.brand.empresa}: ${product.nome}.`],
+        ["Cliente interessado", "Posso te passar os detalhes e confirmar disponibilidade agora."],
+        ["Cliente perguntando o preço", `O preço promocional informado é ${money(product.promo)}.`],
+        ["Cliente que parou de responder", "Oi! Passando para saber se ainda quer ajuda com esse produto."],
+        ["Lançamento", `Chegou na ${state.brand.empresa}: ${product.nome}.`],
+        ["Promoção", `Tem condição especial informada para ${product.nome}: ${money(product.promo)}.`],
+        ["Último dia de oferta", "A condição informada termina hoje. Quer confirmar disponibilidade?"]
       ],
-      ideias: ["Comparar antes e depois do look", "Mostrar três formas de usar", "Responder dúvidas comuns", "Criar enquete de preferência"]
+      ideias: ["Comparar duas formas de uso", "Mostrar detalhe em close", "Responder dúvida comum", "Criar enquete sobre preferência", "Montar combo com item complementar"]
     };
   }
 };
 
 let generated = campaignGeneratorService.generate({ productId: 1 });
 
+function money(value) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 function toast(message) {
   const item = document.createElement("div");
   item.className = "toast";
   item.textContent = message;
   toastStack.appendChild(item);
-  setTimeout(() => item.remove(), 2600);
+  setTimeout(() => item.remove(), 2800);
 }
 
-function money(value) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function setPage(page) {
+function setPage(page, showPanel = true) {
   state.page = page;
-  state.campaignStep = page === "nova-campanha" ? state.campaignStep : 1;
-  document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.page === page));
-  const item = menuItems.find(([id]) => id === page);
-  pageTitle.textContent = item ? item[2] : "Dashboard";
-  breadcrumb.textContent = `DivulgaPro / ${pageTitle.textContent}`;
+  state.panel = showPanel;
+  app.classList.toggle("landing-mode", !state.panel);
   app.classList.remove("mobile-open");
+  document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.page === page));
+  const current = menuItems.find(([id]) => id === page);
+  pageTitle.textContent = current ? current[2] : "Início";
+  breadcrumb.textContent = `DivulgaPro AI / ${pageTitle.textContent}`;
   render();
   content.focus();
 }
@@ -157,224 +193,233 @@ function renderMenu() {
     </button>`).join("");
   nav.addEventListener("click", (event) => {
     const button = event.target.closest("[data-page]");
-    if (button) setPage(button.dataset.page);
+    if (button) setPage(button.dataset.page, true);
   });
 }
 
-function hero() {
-  return `<section class="hero-panel">
-    <div>
-      <span class="status-pill">🧡 Plataforma SaaS para comerciantes</span>
-      <h2>Envie a foto do seu produto e receba uma campanha profissional pronta para divulgar e vender.</h2>
-      <p>Crie conteúdos simulados para Instagram, Stories, WhatsApp, Reels e TikTok com organização comercial e linguagem simples.</p>
-      <div class="button-row">
-        <button class="button" data-action="page" data-page="nova-campanha">✨ Criar nova campanha</button>
-        <button class="ghost-button" data-action="page" data-page="produtos">📦 Adicionar produto</button>
+function landingPage() {
+  return `<section class="landing-hero">
+    <div class="hero-stage">
+      <div class="hero-center">
+        <span class="brand-kicker">DivulgaPro AI</span>
+        <h1>O que você deseja criar?</h1>
+        <p>Descreva sua ideia e transforme seu produto em uma campanha pronta para divulgar.</p>
+        ${createBox()}
+        <div class="quick-suggestions">${suggestions.map((item) => `<button class="suggestion" data-action="suggest" data-value="${item}">${item}</button>`).join("")}</div>
       </div>
     </div>
-    <div class="preview-phone">
-      <strong>Story pronto</strong>
-      <h3>Vestido Linho Aurora</h3>
-      <p>Leve, elegante e pronto para o seu dia.</p>
-      <div class="price">R$ 159,90</div>
-      <p>Chame no WhatsApp para consultar disponibilidade.</p>
+    ${modelsSection()}
+    <section class="grid-2">
+      <div class="card"><div class="section-title"><h2>Campanhas recentes</h2><button class="small-button" data-action="open-result">Abrir</button></div>${campaignList()}</div>
+      <div class="empty-state"><h2>Novo por aqui?</h2><p class="muted">Comece descrevendo um produto, uma oferta ou o canal onde quer divulgar. O app organiza o restante com dados simulados realistas.</p><button class="button" data-action="focus-create">Criar primeira campanha</button></div>
+      <div class="card"><h2>Dicas de marketing</h2><p class="muted">Use fotos claras, confirme preço e estoque antes de publicar e prefira chamadas diretas para WhatsApp.</p></div>
+      <div class="card"><h2>Pronto para apresentar</h2><p class="muted">A interface demonstra fluxos reais de criação, revisão, cópia e exportação sem depender de chaves de API no navegador.</p></div>
+    </section>
+  </section>`;
+}
+
+function createBox() {
+  return `<div class="create-box" data-create-box>
+    <div class="create-input-row">
+      <span class="ai-icon">AI</span>
+      <textarea id="smartPrompt" maxlength="280" placeholder="Descreva o que você deseja criar">${state.prompt}</textarea>
     </div>
+    <div class="form-grid">
+      <label class="field"><span>Produto</span><select id="quickProduct">${products.map((p) => `<option value="${p.id}" ${p.id === state.selectedProductId ? "selected" : ""}>${p.nome}</option>`).join("")}</select></label>
+      <label class="field"><span>Objetivo</span><select id="quickGoal"><option>Gerar pedidos pelo WhatsApp</option><option>Promoção</option><option>Lançamento</option><option>Post para Instagram</option><option>Roteiro de vídeo</option></select></label>
+      <label class="field"><span>Preço</span><input id="quickPrice" value="159,90"></label>
+      <label class="field"><span>Promoção</span><input id="quickOffer" value="Condição especial da semana"></label>
+    </div>
+    <div class="upload-zone" data-upload><div><strong>Anexar foto do produto</strong><p class="muted">Clique ou arraste uma imagem para pré-visualizar.</p><input type="file" accept="image/*" multiple hidden></div></div>
+    <div class="upload-preview"></div>
+    <div class="create-actions">
+      <div class="create-tools">
+        <button class="small-button" data-action="attach-image">Anexar imagem</button>
+        <button class="small-button" data-action="page" data-page="produtos">Adicionar produto</button>
+      </div>
+      <span class="char-count" id="charCount">${state.prompt.length}/280</span>
+      <button class="button" data-action="create-campaign">✦ Criar campanha</button>
+    </div>
+    <div id="createStatus"></div>
+  </div>`;
+}
+
+function modelsSection() {
+  const filtered = models.filter(([name,, category]) => {
+    const search = state.modelSearch.toLowerCase();
+    const byFilter = state.modelFilter === "Todos" || category === state.modelFilter;
+    return byFilter && name.toLowerCase().includes(search);
+  });
+  const filters = ["Todos", "Stories", "Vídeos", "Instagram", "WhatsApp", "Ofertas", "Datas comemorativas", "Produtos"];
+  return `<section class="card">
+    <div class="model-toolbar">
+      <div><h2>Comece por um modelo</h2><p class="muted">Escolha um ponto de partida e personalize com seus dados.</p></div>
+      <input class="template-search" id="modelSearch" placeholder="Buscar modelos" value="${state.modelSearch}">
+    </div>
+    <div class="filters">${filters.map((f) => `<button class="small-button filter ${state.modelFilter === f ? "active" : ""}" data-action="filter-model" data-filter="${f}">${f}</button>`).join("")}</div>
+    <div class="models-grid" style="margin-top:16px">${filtered.map(([name, desc, cat], index) => `<article class="model-card">
+      <span class="model-icon">${index + 1}</span><span class="chip">${cat}</span><h3>${name}</h3><p class="muted">${desc}</p><button class="button" data-action="use-model" data-value="${name}">Usar modelo</button>
+    </article>`).join("") || `<div class="empty-state"><strong>Nenhum modelo encontrado.</strong><span>Ajuste a busca ou remova o filtro.</span></div>`}</div>
   </section>`;
 }
 
 function dashboard() {
-  return `${hero()}
-  <section class="grid-4">
-    ${metric("🗂️", "18", "Campanhas criadas")}
-    ${metric("📦", "42", "Produtos cadastrados")}
-    ${metric("✅", "126", "Conteúdos prontos")}
-    ${metric("⏳", "5", "Campanhas em andamento")}
+  return `<section class="grid-4">
+    ${metric("▦", "18", "Campanhas criadas")}
+    ${metric("□", "42", "Produtos cadastrados")}
+    ${metric("✓", "126", "Conteúdos prontos")}
+    ${metric("•", "5", "Campanhas em andamento")}
   </section>
   <section class="grid-2">
-    <div class="card"><div class="section-title"><h2>Campanhas recentes</h2><button class="small-button" data-action="page" data-page="campanhas">Ver todas</button></div>${campaignList()}</div>
-    <div class="card"><div class="section-title"><h2>Atalhos rápidos</h2></div><div class="quick-list">
-      ${quick("✨", "Criar campanha", "nova-campanha")}
-      ${quick("📦", "Cadastrar produto", "produtos")}
-      ${quick("🧮", "Calcular oferta", "calculadora")}
-      ${quick("💡", "Buscar ideia", "ideias")}
-    </div></div>
-    <div class="card"><div class="section-title"><h2>Calendário resumido</h2></div>${calendarItems(4)}</div>
-    <div class="card"><div class="section-title"><h2>Continue de onde parou</h2></div>
-      <p><strong>Campanha Vestido Aurora</strong></p><p class="muted">Falta revisar legenda e exportar textos para WhatsApp.</p>
-      <button class="button" data-action="page" data-page="nova-campanha">Continuar campanha</button>
-    </div>
-  </section>
-  <section class="empty-state"><h2>Estado vazio para novos usuários</h2><p>Quando ainda não houver produtos, o painel mostrará orientações rápidas, exemplos e o botão para criar a primeira campanha.</p><button class="button" data-action="page" data-page="nova-campanha">Começar agora</button></section>`;
+    <div class="card"><div class="section-title"><h2>Continue de onde parou</h2><button class="button" data-action="open-result">Abrir campanha</button></div><p><strong>Vestido Linho Aurora</strong></p><p class="muted">Resultado pronto para revisar, copiar e exportar.</p></div>
+    <div class="card"><div class="section-title"><h2>Atalhos rápidos</h2></div><div class="quick-list">${quick("Nova campanha", "nova-campanha")}${quick("Produtos", "produtos")}${quick("Calculadora", "calculadora")}${quick("Banco de ideias", "ideias")}</div></div>
+    <div class="card"><h2>Campanhas recentes</h2>${campaignList()}</div>
+    <div class="card"><h2>Calendário resumido</h2>${calendarItems(4)}</div>
+  </section>`;
 }
 
 function metric(icon, value, label) {
-  return `<article class="metric-card"><span class="metric-icon">${icon}</span><div><strong>${value}</strong><span>${label}</span></div></article>`;
+  return `<article class="metric-card"><span class="metric-icon">${icon}</span><div><strong>${value}</strong><span class="muted">${label}</span></div></article>`;
 }
-
-function quick(icon, label, page) {
-  return `<button class="small-button" data-action="page" data-page="${page}">${icon} ${label}</button>`;
-}
-
+function quick(label, page) { return `<button class="small-button" data-action="page" data-page="${page}">${label}</button>`; }
 function campaignList() {
   return `<div class="campaign-list">${campaigns.map((item) => `<div class="campaign-row"><div><strong>${item.nome}</strong><div class="muted">${item.canal} • ${item.data}</div></div><span class="status-pill">${item.status}</span></div>`).join("")}</div>`;
 }
 
-function productsPage() {
-  return `<section class="section-title"><div><h2>Produtos</h2><p class="muted">Cadastre fotos, preços, estoque e dados reais para campanhas mais precisas.</p></div><button class="button" data-action="modal-produto">＋ Adicionar produto</button></section>
-  <section class="grid-3">${products.map(productCard).join("")}</section>
-  <section class="form-panel"><h2>Novo produto</h2><div class="upload-zone" data-upload><div><strong>Arraste fotos ou clique para enviar</strong><p class="muted">Foto principal e até cinco fotos adicionais.</p><input type="file" accept="image/*" multiple hidden /></div></div><div class="upload-preview" id="productPreview"></div>${productForm()}</section>`;
-}
-
-function productCard(product) {
-  return `<article class="card product-card">
-    <div class="product-image" style="background: linear-gradient(135deg, ${product.cor}, #fff);"></div>
-    <div><h3>${product.nome}</h3><p class="muted">${product.desc}</p></div>
-    <div><span class="old-price">${money(product.preco)}</span> <span class="price">${money(product.promo)}</span></div>
-    <div class="product-meta"><span class="chip">${product.categoria}</span><span class="chip">Estoque: ${product.estoque}</span><span class="chip">${product.status}</span></div>
-    <div class="button-row">
-      <button class="small-button" data-action="toast" data-message="Produto aberto para edição.">Editar</button>
-      <button class="small-button" data-action="toast" data-message="Produto duplicado como rascunho.">Duplicar</button>
-      <button class="danger-button" data-action="toast" data-message="Produto arquivado na simulação.">Arquivar</button>
-      <button class="button" data-action="product-campaign" data-id="${product.id}">Criar campanha</button>
+function resultPage() {
+  return `<section class="result-panel">
+    <div class="result-hero">
+      <div class="result-photo"></div>
+      <div>
+        <span class="status-pill">${generated.status}</span>
+        <h2>${generated.produto.nome}</h2>
+        <p class="muted">${generated.objetivo} • Público: ${generated.publico} • Criada em ${generated.data}</p>
+        <div class="button-row"><button class="small-button" data-action="toast" data-message="Campanha aberta para edição.">Editar</button><button class="small-button" data-action="toast" data-message="Campanha duplicada.">Duplicar</button><button class="button" data-action="toast" data-message="Campanha exportada na simulação.">Exportar</button></div>
+      </div>
     </div>
-  </article>`;
-}
-
-function productForm() {
-  return `<div class="form-grid">
-    ${field("Nome do produto", "Vestido Linho Aurora")}
-    ${field("Categoria", "Moda feminina")}
-    ${field("Preço normal", "189,90")}
-    ${field("Preço promocional", "159,90")}
-    ${field("Cores", "Areia, branco e terracota")}
-    ${field("Tamanhos", "P, M, G")}
-    ${field("Características", "Linho misto, alça ajustável, leve")}
-    ${field("Estoque", "12")}
-    ${field("Público indicado", "Mulheres que buscam looks leves")}
-    ${field("Status", "Ativo")}
-    <label class="field full-width"><span>Observações</span><textarea rows="3">Não informar composição que não esteja na etiqueta.</textarea></label>
-  </div><div class="button-row"><button class="button" data-action="toast" data-message="Produto salvo como simulação.">Salvar alterações</button></div>`;
-}
-
-function field(label, value = "") {
-  return `<label class="field"><span>${label}</span><input value="${value}" /></label>`;
-}
-
-function brandPage() {
-  return `<section class="grid-2">
-    <div class="form-panel"><h2>Identidade da marca</h2><div class="form-grid">
-      ${field("Nome da empresa", state.brand.empresa)}
-      ${field("Logo", "Arquivo enviado posteriormente")}
-      ${field("Foto de perfil", "Foto da vitrine")}
-      ${field("Cores da marca", "Laranja, grafite e branco")}
-      ${field("Cor principal", state.brand.cor)}
-      ${field("Fonte preferida", "Arial")}
-      ${field("Segmento", state.brand.segmento)}
-      ${field("Cidade", state.brand.cidade)}
-      ${field("Região de atendimento", "Campinas e região")}
-      ${field("WhatsApp", state.brand.whatsapp)}
-      ${field("Instagram", state.brand.instagram)}
-      ${field("Endereço", "Rua das Flores, 120")}
-      ${field("Horário de funcionamento", "Segunda a sábado, 9h às 18h")}
-      ${field("Formas de pagamento", "Pix, cartão e dinheiro")}
-      ${field("Formas de entrega", "Retirada e motoboy local")}
-      ${field("Público-alvo", "Mulheres de 25 a 45 anos")}
-      <label class="field"><span>Tom de comunicação</span><select><option>elegante</option><option>popular</option><option>divertido</option><option>sofisticado</option><option>jovem</option><option>direto</option><option>promocional</option></select></label>
-      ${field("Palavras que devem ser usadas", "novo, elegante, disponível")}
-      ${field("Palavras que não devem ser usadas", "imperdível garantido, viral")}
-      <label class="field full-width"><span>Informações que nunca podem ser inventadas</span><textarea rows="3">Estoque, prazo de entrega, descontos, avaliações e material do produto.</textarea></label>
-    </div><button class="button" data-action="toast" data-message="Identidade salva na simulação.">Salvar alterações</button></div>
-    <div class="card"><h2>Pré-visualização</h2><div class="preview-phone"><strong>${state.brand.empresa}</strong><h3>Produto em destaque</h3><p>Tom ${state.brand.tom}, visual laranja e chamada direta para WhatsApp.</p><span class="status-pill">Disponível em ${state.brand.cidade}</span></div></div>
+    ${resultTabs()}
   </section>`;
 }
 
-function newCampaignPage() {
-  return `<section class="stepper">${["Produto","Dados","Estilo","Canais","Resultado"].map((s, i) => `<div class="step ${state.campaignStep === i + 1 ? "active" : ""}">Etapa ${i + 1}<br>${s}</div>`).join("")}</section>
-  <section class="form-panel">${campaignStep()}</section>`;
-}
-
-function campaignStep() {
-  if (state.campaignStep === 1) return `<h2>Etapa 1 Produto</h2><div class="form-grid"><label class="field"><span>Escolher produto cadastrado</span><select id="productSelect">${products.map((p) => `<option value="${p.id}" ${p.id === state.selectedProductId ? "selected" : ""}>${p.nome}</option>`).join("")}</select></label></div><div class="upload-zone" data-upload><div><strong>Arraste e solte imagens do produto</strong><p class="muted">Visualize, troque ou remova antes de gerar.</p><input type="file" accept="image/*" multiple hidden /></div></div><div class="upload-preview" id="campaignPreview"></div>${stepButtons()}`;
-  if (state.campaignStep === 2) return `<h2>Etapa 2 Dados da campanha</h2><div class="form-grid">${["Nome do produto","Preço normal","Preço promocional","Validade","Quantidade disponível","Condição de pagamento","Forma de entrega","Público-alvo","Cidade ou região"].map((x) => field(x)).join("")}<label class="field"><span>Objetivo da campanha</span><select>${["Lançamento","Promoção","Liquidação","Estoque parado","Novidade","Data comemorativa","Gerar pedidos pelo WhatsApp","Divulgar produto premium","Atrair novos clientes","Aumentar o movimento da loja"].map((x) => `<option>${x}</option>`).join("")}</select></label></div>${stepButtons()}`;
-  if (state.campaignStep === 3) return `<h2>Etapa 3 Estilo</h2><div class="option-grid">${["Oferta chamativa","Elegante","Minimalista","Luxo","Jovem","Divertida","Urgência","Foco na qualidade","Foco no benefício","Foco no preço"].map((x) => option(x, "radio", "style")).join("")}</div>${stepButtons()}`;
-  if (state.campaignStep === 4) return `<h2>Etapa 4 Canais</h2><div class="option-grid">${["Instagram Stories","Status do WhatsApp","Feed","Reels","TikTok","Mensagem direta","Lista de transmissão autorizada"].map((x) => option(x, "checkbox", "channel")).join("")}</div>${stepButtons(true)}`;
-  return `<h2>Etapa 5 Resultado</h2><div class="skeleton" id="processing"></div><div id="resultMount" class="hidden">${resultTabs()}</div>`;
-}
-
-function option(label, type, name) {
-  return `<label class="option-card"><input type="${type}" name="${name}" checked /> ${label}</label>`;
-}
-
-function stepButtons(generate = false) {
-  return `<div class="button-row" style="margin-top:16px">
-    <button class="small-button" data-action="prev-step">Voltar</button>
-    <button class="button" data-action="${generate ? "generate-campaign" : "next-step"}">${generate ? "Gerar conteúdo" : "Próxima etapa"}</button>
-  </div>`;
-}
-
 function resultTabs() {
-  const tabs = [["estrategia","Estratégia"],["stories","Stories"],["roteiro","Roteiro de vídeo"],["legenda","Legenda"],["whatsapp","WhatsApp"],["ideias","Ideias extras"],["calculadora","Calculadora da oferta"],["exportar","Exportar"]];
-  return `<div class="result-panel card"><div class="tabs">${tabs.map(([id, label]) => `<button class="tab-button ${state.activeTab === id ? "active" : ""}" data-action="tab" data-tab="${id}">${label}</button>`).join("")}</div><div>${tabContent()}</div></div>`;
+  const tabs = [["estrategia","Estratégia"],["stories","Stories"],["roteiro","Roteiro de vídeo"],["legenda","Legenda"],["whatsapp","WhatsApp"],["ideias","Ideias extras"],["oferta","Oferta"],["exportar","Exportar"]];
+  return `<div class="tabs">${tabs.map(([id, label]) => `<button class="tab-button ${state.activeTab === id ? "active" : ""}" data-action="tab" data-tab="${id}">${label}</button>`).join("")}</div><div>${tabContent()}</div>`;
 }
 
 function tabContent() {
   if (state.activeTab === "estrategia") return Object.entries(generated.estrategia).map(([k, v]) => `<p><strong>${k}:</strong> ${v}</p>`).join("");
-  if (state.activeTab === "stories") return generated.stories.map((s) => `<article class="story-card"><div class="story-card-header"><h3>Story ${s.numero}: ${s.objetivo}</h3><span class="status-pill">${s.formato}</span></div><p><strong>Duração:</strong> ${s.duracao}</p><p><strong>Texto na tela:</strong> ${s.tela}</p><p><strong>Fala sugerida:</strong> ${s.fala}</p><p><strong>O que filmar:</strong> ${s.filmar}</p><p><strong>Câmera:</strong> ${s.camera}</p><p><strong>Movimento:</strong> ${s.movimento}</p><p><strong>Detalhe:</strong> ${s.detalhe}</p><p><strong>Música ou clima:</strong> ${s.musica}</p><p><strong>Sticker:</strong> ${s.sticker}</p><p><strong>Chamada:</strong> ${s.cta}</p><div class="button-row"><button class="small-button" data-action="copy" data-copy="${s.tela}">Copiar texto</button><button class="button" data-action="toast" data-message="Story marcado como concluído.">Marcar como concluído</button></div></article>`).join("");
-  if (state.activeTab === "roteiro") return `<article class="script-card"><h3>${generated.roteiro.gancho}</h3><p><strong>Duração:</strong> ${generated.roteiro.duracao}</p><p><strong>Cenas:</strong> ${generated.roteiro.cenas.join(" • ")}</p><p><strong>Texto falado:</strong> ${generated.roteiro.fala}</p><p><strong>Texto na tela:</strong> ${generated.roteiro.tela}</p><p><strong>Transições:</strong> ${generated.roteiro.transicoes}</p><p><strong>Música:</strong> ${generated.roteiro.musica}</p><p><strong>Legenda:</strong> ${generated.roteiro.legenda}</p><p><strong>Chamada:</strong> ${generated.roteiro.cta}</p>${generated.roteiro.versoes.map((v) => `<span class="chip">${v}</span>`).join(" ")}</article>`;
-  if (state.activeTab === "legenda") return Object.entries(generated.textos).map(([k, v]) => `<div class="campaign-row"><div><strong>${k}</strong><p class="muted">${v}</p></div><button class="small-button" data-action="copy" data-copy="${v}">Copiar texto</button></div>`).join("");
-  if (state.activeTab === "whatsapp") return generated.whatsapp.map(([k, v]) => `<div class="campaign-row"><div><strong>${k}</strong><p class="muted">${v}</p></div><button class="small-button" data-action="copy" data-copy="${v}">Copiar texto</button></div>`).join("");
+  if (state.activeTab === "stories") return `<div class="story-layout"><div>${generated.stories.map((s) => `<article class="story-card"><div class="story-header"><h3>Story ${s.numero}: ${s.objetivo}</h3><span class="chip">${s.duracao}</span></div><p><strong>Texto na tela:</strong> ${s.tela}</p><p><strong>O que filmar:</strong> ${s.filmar}</p><p><strong>Fala sugerida:</strong> ${s.fala}</p><p><strong>Música ou clima:</strong> ${s.musica}</p><p><strong>Enquadramento:</strong> ${s.enquadramento}</p><p><strong>Movimento da câmera:</strong> ${s.movimento}</p><p><strong>Chamada:</strong> ${s.cta}</p><div class="button-row"><button class="small-button" data-action="copy" data-copy="${s.tela}">Copiar</button><button class="button" data-action="toast" data-message="Story marcado como concluído.">Marcar como concluído</button></div></article>`).join("")}</div><aside class="phone-preview"><strong>Pré-visualização</strong><h3>${generated.produto.nome}</h3><p>${generated.stories[0].tela}</p><span class="price">${money(generated.produto.promo)}</span><p>${generated.stories[4].cta}</p></aside></div>`;
+  if (state.activeTab === "roteiro") return `<article class="script-card"><h3>${generated.roteiro.gancho}</h3><p><strong>Duração:</strong> ${generated.roteiro.duracao}</p><p><strong>Cenas:</strong> ${generated.roteiro.cenas.join(" • ")}</p><p><strong>Texto falado:</strong> ${generated.roteiro.fala}</p><p><strong>Texto da tela:</strong> ${generated.roteiro.tela}</p><p><strong>Instrução da câmera:</strong> ${generated.roteiro.camera}</p><p><strong>Transição:</strong> ${generated.roteiro.transicao}</p><p><strong>Música:</strong> ${generated.roteiro.musica}</p><p><strong>Legenda:</strong> ${generated.roteiro.legenda}</p><p><strong>Chamada:</strong> ${generated.roteiro.cta}</p>${generated.roteiro.versoes.map((v) => `<span class="chip">${v}</span>`).join(" ")}</article>`;
+  if (state.activeTab === "legenda") return textRows(generated.textos);
+  if (state.activeTab === "whatsapp") return generated.whatsapp.map(([k, v]) => `<div class="campaign-row"><div><strong>${k}</strong><p class="muted">${v}</p></div><button class="small-button" data-action="copy" data-copy="${v}">Copiar</button></div>`).join("");
   if (state.activeTab === "ideias") return generated.ideias.map((idea) => `<div class="card"><strong>${idea}</strong><p class="muted">Ideia prática para adaptar ao produto sem inventar informações.</p></div>`).join("");
-  if (state.activeTab === "calculadora") return calculator();
-  return `<div class="button-row"><button class="button" data-action="toast" data-message="Campanha exportada na simulação.">⬇️ Exportar campanha</button><button class="small-button" data-action="toast" data-message="Material baixado na simulação.">Baixar material</button></div>`;
+  if (state.activeTab === "oferta") return calculator();
+  return `<div class="button-row"><button class="button" data-action="toast" data-message="Campanha exportada.">Exportar campanha</button><button class="small-button" data-action="toast" data-message="Material baixado.">Baixar material</button></div>`;
+}
+
+function textRows(obj) {
+  return Object.entries(obj).map(([k, v]) => `<div class="campaign-row"><div><strong>${k}</strong><p class="muted">${v}</p></div><button class="small-button" data-action="copy" data-copy="${v}">Copiar</button></div>`).join("");
+}
+
+function productsPage() {
+  return `<section class="section-title"><div><h2>Produtos</h2><p class="muted">Cadastre dados reais para campanhas mais precisas.</p></div><button class="button" data-action="toast" data-message="Formulário pronto para novo produto.">Adicionar produto</button></section><section class="grid-3">${products.map(productCard).join("")}</section><section class="form-panel"><h2>Novo produto</h2><div class="upload-zone" data-upload><div><strong>Foto principal e até cinco adicionais</strong><p class="muted">Clique ou arraste imagens.</p><input type="file" accept="image/*" multiple hidden></div></div><div class="upload-preview"></div>${productForm()}</section>`;
+}
+function productCard(product) {
+  return `<article class="card product-card"><div class="product-image" style="background:linear-gradient(135deg,${product.cor},#fff)"></div><h3>${product.nome}</h3><p class="muted">${product.desc}</p><div><span class="old-price">${money(product.preco)}</span> <span class="price">${money(product.promo)}</span></div><div class="product-meta"><span class="chip">${product.categoria}</span><span class="chip">Estoque: ${product.estoque}</span><span class="chip">${product.status}</span></div><div class="button-row"><button class="small-button" data-action="toast" data-message="Produto aberto para edição.">Editar</button><button class="small-button" data-action="toast" data-message="Produto duplicado.">Duplicar</button><button class="danger-button" data-action="toast" data-message="Produto arquivado.">Arquivar</button><button class="button" data-action="product-campaign" data-id="${product.id}">Criar campanha</button></div></article>`;
+}
+function productForm() {
+  return `<div class="form-grid">${field("Nome do produto","Vestido Linho Aurora")}${field("Categoria","Moda feminina")}${field("Preço normal","189,90")}${field("Preço promocional","159,90")}${field("Cores","Areia, branco e terracota")}${field("Tamanhos","P, M, G")}${field("Características","Linho misto, alça ajustável")}${field("Estoque","12")}${field("Público indicado","Mulheres que buscam looks leves")}${field("Status","Ativo")}<label class="field full-width"><span>Observações</span><textarea rows="3">Não informar composição que não esteja na etiqueta.</textarea></label></div><div class="button-row"><button class="button" data-action="toast" data-message="Produto salvo na simulação.">Salvar alterações</button></div>`;
+}
+function field(label, value = "") { return `<label class="field"><span>${label}</span><input value="${value}"></label>`; }
+
+function campaignFlowPage() {
+  return `${createBox()}<section class="stepper">${["Produto","Dados","Estilo","Canais","Resultado"].map((s, i) => `<div class="step ${state.campaignStep === i + 1 ? "active" : ""}">Etapa ${i + 1}<br>${s}</div>`).join("")}</section><section class="form-panel">${campaignStep()}</section>`;
+}
+function campaignStep() {
+  if (state.campaignStep === 1) return `<h2>Etapa 1 Produto</h2><div class="form-grid"><label class="field"><span>Escolher produto cadastrado</span><select>${products.map((p) => `<option>${p.nome}</option>`).join("")}</select></label></div><div class="button-row"><button class="button" data-action="next-step">Próxima etapa</button></div>`;
+  if (state.campaignStep === 2) return `<h2>Etapa 2 Dados da campanha</h2><div class="form-grid">${["Nome do produto","Preço normal","Preço promocional","Validade","Quantidade disponível","Condição de pagamento","Forma de entrega","Público-alvo","Cidade ou região"].map((x) => field(x)).join("")}<label class="field"><span>Objetivo</span><select><option>Gerar pedidos pelo WhatsApp</option><option>Promoção</option><option>Lançamento</option><option>Aumentar movimento da loja</option></select></label></div>${stepButtons()}`;
+  if (state.campaignStep === 3) return `<h2>Etapa 3 Estilo</h2><div class="option-grid">${["Oferta chamativa","Elegante","Minimalista","Luxo","Jovem","Divertida","Urgência","Foco na qualidade","Foco no benefício","Foco no preço"].map((x) => option(x, "radio", "style")).join("")}</div>${stepButtons()}`;
+  if (state.campaignStep === 4) return `<h2>Etapa 4 Canais</h2><div class="option-grid">${["Instagram Stories","Status do WhatsApp","Feed","Reels","TikTok","Mensagem direta","Lista de transmissão autorizada"].map((x) => option(x, "checkbox", "channel")).join("")}</div>${stepButtons(true)}`;
+  return resultPage();
+}
+function option(label, type, name) { return `<label class="option-card"><input type="${type}" name="${name}" checked> ${label}</label>`; }
+function stepButtons(generate = false) { return `<div class="button-row" style="margin-top:16px"><button class="small-button" data-action="prev-step">Voltar</button><button class="button" data-action="${generate ? "create-campaign" : "next-step"}">${generate ? "Gerar conteúdo" : "Próxima etapa"}</button></div>`; }
+
+function brandPage() {
+  return `<section class="grid-2"><div class="form-panel"><h2>Identidade da marca</h2><div class="form-grid">${field("Nome da loja", state.brand.empresa)}${field("Logo","Enviar arquivo")}${field("Cores","Laranja, grafite e branco")}${field("WhatsApp", state.brand.whatsapp)}${field("Instagram", state.brand.instagram)}${field("Endereço","Rua das Flores, 120")}${field("Horário","Segunda a sábado, 9h às 18h")}${field("Formas de pagamento","Pix, cartão e dinheiro")}${field("Forma de entrega","Retirada e motoboy local")}${field("Público","Mulheres de 25 a 45 anos")}${field("Segmento", state.brand.segmento)}<label class="field"><span>Tom de comunicação</span><select><option>elegante</option><option>popular</option><option>divertido</option><option>sofisticado</option><option>jovem</option><option>direto</option><option>promocional</option></select></label></div><button class="button" data-action="toast" data-message="Identidade salva.">Salvar alterações</button></div><div class="card"><h2>Como a IA usará esses dados</h2><p class="muted">A geração futura deve adaptar textos ao segmento, tom e canais informados, sem inventar preço, estoque ou características.</p></div></section>`;
 }
 
 function calculator() {
-  return `<div class="form-grid calc"><label class="field"><span>Custo do produto</span><input data-calc="custo" value="80"></label><label class="field"><span>Preço normal</span><input data-calc="normal" value="189.90"></label><label class="field"><span>Preço promocional</span><input data-calc="promo" value="159.90"></label><label class="field"><span>Desconto</span><input data-calc="desconto" value="30"></label><label class="field"><span>Taxa do cartão</span><input data-calc="cartao" value="5"></label><label class="field"><span>Taxa de marketplace</span><input data-calc="marketplace" value="0"></label><label class="field"><span>Embalagem</span><input data-calc="embalagem" value="4"></label><label class="field"><span>Entrega</span><input data-calc="entrega" value="10"></label><label class="field"><span>Outras despesas</span><input data-calc="outras" value="0"></label></div><div class="card" id="calcResult"></div>`;
+  return `<div class="form-grid calc">${["Custo do produto","Preço original","Preço promocional","Desconto","Taxa do cartão","Embalagem","Entrega","Outras despesas"].map((x, i) => `<label class="field"><span>${x}</span><input data-calc="${i}" value="${[80,189.9,159.9,30,5,4,10,0][i]}"></label>`).join("")}</div><div class="card" id="calcResult"></div>`;
 }
-
-function genericPage(title, details) {
-  return `<section class="card"><div class="section-title"><div><h2>${title}</h2><p class="muted">${details}</p></div><button class="button" data-action="toast" data-message="Ação executada na simulação.">Criar conteúdo</button></div>${campaignList()}</section>`;
-}
-
-function calendarPage() {
-  return `<section class="card"><div class="section-title"><div><h2>Calendário de conteúdo</h2><p class="muted">Planos de 7, 15 e 30 dias com ideias executáveis.</p></div><div class="button-row"><button class="small-button" data-action="toast" data-message="Plano de 7 dias selecionado.">7 dias</button><button class="small-button" data-action="toast" data-message="Plano de 15 dias selecionado.">15 dias</button><button class="button" data-action="toast" data-message="Plano de 30 dias selecionado.">30 dias</button></div></div>${calendarItems(10)}</section>`;
+function updateCalc() {
+  const result = document.querySelector("#calcResult");
+  if (!result) return;
+  const values = [...document.querySelectorAll("[data-calc]")].map((input) => {
+    input.addEventListener("input", updateCalc);
+    return Number(String(input.value).replace(",", ".")) || 0;
+  });
+  const [custo, original, promo, desconto, cartao, embalagem, entrega, outras] = values;
+  const despesas = custo + cartao + embalagem + entrega + outras;
+  const restante = promo - despesas;
+  const margem = promo ? (restante / promo) * 100 : 0;
+  const minimo = despesas / 0.75;
+  result.innerHTML = `<h3>Resumo da oferta</h3><p><strong>Margem estimada:</strong> ${margem.toFixed(1)}%</p><p><strong>Valor restante estimado:</strong> ${money(restante)}</p><p><strong>Desconto aplicado:</strong> ${money(original - promo || desconto)}</p><p><strong>Preço mínimo recomendado:</strong> ${money(minimo)}</p>${margem < 20 ? '<p class="status-pill">Atenção: margem estimada baixa</p>' : '<p class="status-pill">Margem estimada saudável</p>'}`;
 }
 
 function calendarItems(count) {
-  return Array.from({ length: count }, (_, i) => `<div class="calendar-item"><div><strong>Dia ${i + 1} • Instagram Stories</strong><div class="muted">${products[i % products.length].nome} • Demonstração • Ideia prática para divulgar sem exageros</div></div><button class="small-button" data-action="page" data-page="nova-campanha">Abrir campanha</button></div>`).join("");
+  return Array.from({ length: count }, (_, i) => `<div class="campaign-row"><div><strong>Dia ${i + 1} • Instagram Stories</strong><div class="muted">${products[i % products.length].nome} • Demonstração • Conteúdo prático</div></div><button class="small-button" data-action="open-result">Abrir campanha</button></div>`).join("");
 }
-
 function ideasPage() {
   const segments = ["Loja de roupas","Calçados","Salão","Barbearia","Restaurante","Loja de celulares","Mercado","Cosméticos","Oficina","Confeitaria","Imobiliária","Serviços em geral"];
-  const cats = ["Reels","Stories","Bastidores","Enquete","Comparação","Demonstração","Antes e depois","Perguntas frequentes","Conteúdo educativo","Combos","Estoque parado","Datas comemorativas"];
-  return `<section class="grid-2"><div class="card"><h2>Segmentos</h2><div class="idea-list">${segments.map((x) => `<button class="small-button" data-action="toast" data-message="Filtro aplicado: ${x}">${x}</button>`).join("")}</div></div><div class="card"><h2>Categorias</h2><div class="idea-list">${cats.map((x) => `<button class="small-button" data-action="toast" data-message="Categoria aplicada: ${x}">${x}</button>`).join("")}</div></div></section><section class="grid-3">${cats.slice(0,6).map((x) => `<article class="card"><span class="status-pill">${x}</span><h3>Ideia para ${x.toLowerCase()}</h3><p class="muted">Mostre um detalhe real do produto, explique o benefício e finalize com convite para o WhatsApp.</p><button class="small-button" data-action="copy" data-copy="Mostre um detalhe real do produto e finalize com convite para o WhatsApp.">Copiar ideia</button></article>`).join("")}</section>`;
+  return `<section class="grid-3">${segments.map((s) => `<article class="card"><span class="chip">${s}</span><h3>Ideias para ${s.toLowerCase()}</h3><p class="muted">Reels, Stories, bastidores, enquete, comparação, demonstração, perguntas frequentes e datas comemorativas.</p><button class="small-button" data-action="copy" data-copy="Mostre uma dúvida comum, grave o produto em uso e finalize com convite para o WhatsApp.">Copiar ideia</button></article>`).join("")}</section>`;
+}
+function genericPage(title, details) {
+  return `<section class="card"><div class="section-title"><div><h2>${title}</h2><p class="muted">${details}</p></div><button class="button" data-action="open-result">Criar conteúdo</button></div>${campaignList()}</section>`;
 }
 
 function render() {
-  const map = {
+  const pages = {
+    inicio: landingPage,
     dashboard,
+    "nova-campanha": campaignFlowPage,
+    campanhas: () => genericPage("Minhas campanhas", "Rascunhos, campanhas prontas e materiais exportáveis."),
     produtos: productsPage,
-    marca: brandPage,
-    "nova-campanha": newCampaignPage,
-    calendario: calendarPage,
+    stories: () => { state.activeTab = "stories"; return resultPage(); },
+    roteiros: () => { state.activeTab = "roteiro"; return resultPage(); },
+    legendas: () => { state.activeTab = "legenda"; return resultPage(); },
+    whatsapp: () => { state.activeTab = "whatsapp"; return resultPage(); },
+    calendario: () => `<section class="card"><div class="section-title"><div><h2>Calendário de conteúdo</h2><p class="muted">Planos de 7, 15 e 30 dias.</p></div><div class="button-row"><button class="small-button" data-action="toast" data-message="Plano de 7 dias selecionado.">7 dias</button><button class="small-button" data-action="toast" data-message="Plano de 15 dias selecionado.">15 dias</button><button class="button" data-action="toast" data-message="Plano de 30 dias selecionado.">30 dias</button></div></div>${calendarItems(10)}</section>`,
     calculadora: () => `<section class="form-panel"><h2>Calculadora de ofertas</h2>${calculator()}</section>`,
     ideias: ideasPage,
-    campanhas: () => genericPage("Minhas campanhas", "Acompanhe rascunhos, campanhas prontas e conteúdos em andamento."),
-    roteiros: () => genericPage("Roteiros de vídeos", "Organize versões para Reels, TikTok e vídeos curtos."),
-    stories: () => genericPage("Stories", "Revise sequências com objetivo, texto, fala e chamada para ação."),
-    legendas: () => genericPage("Legendas e textos", "Textos prontos para Instagram, status e chamadas comerciais."),
-    whatsapp: () => genericPage("WhatsApp", "Mensagens para atendimento, listas autorizadas e reativação."),
-    configuracoes: () => `<section class="card"><h2>Configurações</h2><p class="muted">Tema claro ativo. Estrutura preparada para tema escuro, integrações e IA real sem chaves no navegador.</p><div class="error-state"><strong>Estado de erro simulado</strong><span>Quando uma integração falhar, o usuário verá uma mensagem clara e uma ação de tentar novamente.</span><button class="button" data-action="toast" data-message="Tentativa refeita na simulação.">Tentar novamente</button></div></section>`
+    marca: brandPage,
+    configuracoes: () => `<section class="card"><h2>Configurações</h2><p class="muted">Tema claro como padrão, com tema escuro disponível para pré-visualização.</p><div class="button-row"><button class="button" data-action="theme" data-theme="claro">Tema claro</button><button class="ghost-button" data-action="theme" data-theme="escuro">Tema escuro</button></div><div class="error-state" style="margin-top:16px"><strong>Estado de erro simulado</strong><span>Quando uma integração falhar, o usuário verá uma mensagem clara e uma ação de tentar novamente.</span><button class="button" data-action="toast" data-message="Tentativa refeita.">Tentar novamente</button></div></section>`
   };
-  content.innerHTML = (map[state.page] || dashboard)();
+  content.innerHTML = (pages[state.page] || landingPage)();
+  bindDynamicInputs();
   bindUploads();
   updateCalc();
-  if (state.campaignStep === 5) {
-    setTimeout(() => {
-      document.querySelector("#processing")?.classList.add("hidden");
-      document.querySelector("#resultMount")?.classList.remove("hidden");
-    }, 800);
+}
+
+function bindDynamicInputs() {
+  const prompt = document.querySelector("#smartPrompt");
+  if (prompt) {
+    prompt.addEventListener("input", () => {
+      state.prompt = prompt.value;
+      const count = document.querySelector("#charCount");
+      if (count) count.textContent = `${state.prompt.length}/280`;
+    });
+    prompt.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        createCampaign();
+      }
+    });
   }
+  const modelSearch = document.querySelector("#modelSearch");
+  if (modelSearch) modelSearch.addEventListener("input", () => { state.modelSearch = modelSearch.value; render(); });
+  const quickProduct = document.querySelector("#quickProduct");
+  if (quickProduct) quickProduct.addEventListener("change", () => { state.selectedProductId = Number(quickProduct.value); });
 }
 
 function bindUploads() {
@@ -403,35 +448,44 @@ function handleFiles(files) {
   });
 }
 
-function updateCalc() {
-  const result = document.querySelector("#calcResult");
-  if (!result) return;
-  const values = [...document.querySelectorAll("[data-calc]")].reduce((acc, input) => {
-    acc[input.dataset.calc] = Number(String(input.value).replace(",", ".")) || 0;
-    input.addEventListener("input", updateCalc);
-    return acc;
-  }, {});
-  const despesas = values.custo + values.cartao + values.marketplace + values.embalagem + values.entrega + values.outras;
-  const restante = values.promo - despesas;
-  const margem = values.promo ? (restante / values.promo) * 100 : 0;
-  const desconto = values.normal - values.promo;
-  const minimo = despesas / 0.75;
-  result.innerHTML = `<h3>Resumo da oferta</h3><p><strong>Valor restante estimado:</strong> ${money(restante)}</p><p><strong>Margem estimada:</strong> ${margem.toFixed(1)}%</p><p><strong>Desconto aplicado:</strong> ${money(desconto)}</p><p><strong>Preço mínimo recomendado:</strong> ${money(minimo)}</p>${margem < 20 ? '<p class="status-pill">Atenção: margem estimada baixa</p>' : '<p class="status-pill">Margem estimada saudável</p>'}`;
+function createCampaign() {
+  const status = document.querySelector("#createStatus");
+  if (!state.prompt.trim()) {
+    if (status) status.innerHTML = `<div class="error-state"><strong>Descreva o que você deseja criar.</strong><span>Exemplo: Quero divulgar um tênis feminino.</span></div>`;
+    toast("Informe uma ideia para criar a campanha.");
+    return;
+  }
+  if (status) status.innerHTML = `<div class="skeleton"></div>`;
+  state.status = "loading";
+  setTimeout(() => {
+    generated = campaignGeneratorService.generate({ productId: state.selectedProductId, prompt: state.prompt });
+    state.status = "success";
+    state.activeTab = "estrategia";
+    state.campaignStep = 5;
+    toast("Campanha criada com dados simulados.");
+    setPage("nova-campanha", true);
+  }, 700);
 }
 
 document.addEventListener("click", async (event) => {
   const action = event.target.closest("[data-action]");
   if (!action) return;
   const type = action.dataset.action;
-  if (type === "page") setPage(action.dataset.page);
+  if (type === "home") { event.preventDefault(); setPage("inicio", false); }
+  if (type === "page") setPage(action.dataset.page, true);
   if (type === "toast") toast(action.dataset.message || "Ação realizada.");
-  if (type === "product-campaign") { state.selectedProductId = Number(action.dataset.id); setPage("nova-campanha"); }
+  if (type === "suggest" || type === "use-model") { state.prompt = action.dataset.value; render(); document.querySelector("#smartPrompt")?.focus(); }
+  if (type === "filter-model") { state.modelFilter = action.dataset.filter; render(); }
+  if (type === "focus-create") document.querySelector("#smartPrompt")?.focus();
+  if (type === "attach-image") document.querySelector("[data-upload] input")?.click();
+  if (type === "create-campaign") createCampaign();
+  if (type === "open-result") { state.panel = true; state.page = "nova-campanha"; state.campaignStep = 5; setPage("nova-campanha", true); }
+  if (type === "product-campaign") { state.selectedProductId = Number(action.dataset.id); state.prompt = `Criar campanha para ${products.find((p) => p.id === state.selectedProductId).nome}`; createCampaign(); }
   if (type === "next-step") { state.campaignStep = Math.min(5, state.campaignStep + 1); render(); }
   if (type === "prev-step") { state.campaignStep = Math.max(1, state.campaignStep - 1); render(); }
-  if (type === "generate-campaign") { generated = campaignGeneratorService.generate({ productId: state.selectedProductId }); state.campaignStep = 5; render(); toast("Campanha gerada com dados simulados."); }
   if (type === "tab") { state.activeTab = action.dataset.tab; render(); }
   if (type === "copy") { await navigator.clipboard?.writeText(action.dataset.copy || ""); toast("Texto copiado."); }
-  if (type === "modal-produto") toast("Formulário de produto disponível abaixo dos cards.");
+  if (type === "theme") { state.theme = action.dataset.theme; app.dataset.theme = state.theme; toast(`Tema ${state.theme} aplicado.`); }
 });
 
 document.querySelector("#collapseSidebar").addEventListener("click", () => {
@@ -441,9 +495,8 @@ document.querySelector("#openMenu").addEventListener("click", () => app.classLis
 document.querySelector("#mobileBackdrop").addEventListener("click", () => app.classList.remove("mobile-open"));
 document.querySelector("#notificationButton").addEventListener("click", () => toast("3 notificações: campanha pronta, produto sem foto e calendário atualizado."));
 document.querySelector("#globalSearch").addEventListener("input", (event) => {
-  state.search = event.target.value;
-  toast(state.search ? `Busca simulada por: ${state.search}` : "Busca limpa.");
+  if (event.target.value) toast(`Busca simulada por: ${event.target.value}`);
 });
 
 renderMenu();
-render();
+setPage("inicio", false);
