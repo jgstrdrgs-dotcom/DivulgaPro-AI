@@ -270,7 +270,7 @@ function createBox() {
     <div class="create-input-row">
       <span class="ai-icon" aria-hidden="true"><span class="spark-icon">✦</span></span>
       <div class="prompt-column">
-        <textarea id="smartPrompt" maxlength="280" aria-label="Escreva livremente o que você deseja criar" placeholder="Descreva sua ideia, produto ou objetivo de campanha...">${escapeHtml(state.prompt)}</textarea>
+        <textarea id="smartPrompt" maxlength="280" aria-label="Descreva o que você deseja criar" placeholder="Descreva o que você deseja criar">${escapeHtml(state.prompt)}</textarea>
         ${state.prompt.trim() ? `<div class="context-suggestions"><span>Você pode incluir:</span><button data-action="suggest" data-value="Quero divulgar ${products[state.selectedProductId - 1].nome}">produto</button><button data-action="suggest" data-value="Quero criar uma promoção para minha loja">objetivo</button><button data-action="suggest" data-value="Quero criar uma campanha para o WhatsApp">canal</button></div>` : ""}
       </div>
       <button class="clear-prompt ${state.prompt.trim() ? "" : "hidden"}" data-action="clear-prompt" type="button" aria-label="Limpar descrição">×</button>
