@@ -3,27 +3,29 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DivulgaPro | Plataforma de campanhas para comerciantes</title>
+    <title>DivulgaPro AI | Campanhas profissionais para produtos</title>
     <meta
       name="description"
-      content="Aplicativo web profissional para transformar fotos de produtos em campanhas completas para Instagram, Stories, WhatsApp, Reels e TikTok."
+      content="DivulgaPro AI transforma ideias, produtos e fotos em campanhas profissionais para Instagram, Stories, WhatsApp, Reels e TikTok."
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell" data-sidebar="aberta">
+    <div class="announcement">Crie campanhas profissionais para seus produtos em poucos minutos.</div>
+
+    <div class="app-shell landing-mode" data-sidebar="aberta" data-theme="claro">
       <aside class="sidebar" aria-label="Menu principal">
         <div class="brand-block">
           <div class="logo-mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48" role="img">
-              <path d="M9 28h7l17 8V12L16 20H9a4 4 0 0 0-4 4v0a4 4 0 0 0 4 4Z" />
+            <svg viewBox="0 0 48 48">
+              <path d="M9 28h7l17 8V12L16 20H9a4 4 0 0 0-4 4 4 4 0 0 0 4 4Z" />
               <path d="M18 30v7a3 3 0 0 0 3 3h4l-5-10Z" />
-              <path d="M37 19l5-3M38 24h6M37 29l5 3" />
+              <path d="M37 18l5-3M38 24h6M37 30l5 3" />
             </svg>
           </div>
           <div class="brand-copy">
-            <strong>DivulgaPro</strong>
-            <span>Transforme produtos em campanhas que vendem.</span>
+            <strong>DivulgaPro AI</strong>
+            <span>Transforme produtos em campanhas profissionais.</span>
           </div>
         </div>
         <nav class="sidebar-nav" id="sidebarNav"></nav>
@@ -35,15 +37,20 @@
       <section class="workspace">
         <header class="topbar">
           <button class="icon-button menu-button" id="openMenu" type="button" aria-label="Abrir menu">☰</button>
+          <a class="top-logo" href="#" data-action="home" aria-label="Ir para o início">
+            <span class="mini-logo">✦</span>
+            <strong>DivulgaPro AI</strong>
+          </a>
           <div class="page-title">
-            <span id="breadcrumb">Dashboard</span>
-            <h1 id="pageTitle">Dashboard</h1>
+            <span id="breadcrumb">Início</span>
+            <h1 id="pageTitle">Início</h1>
           </div>
           <label class="search-box">
-            <span>🔎</span>
+            <span>Buscar</span>
             <input id="globalSearch" type="search" placeholder="Buscar campanha, produto ou ideia" />
           </label>
-          <button class="icon-button" id="notificationButton" type="button" aria-label="Notificações">🔔</button>
+          <button class="small-button" data-action="toast" data-message="Central de ajuda aberta na simulação." type="button">Ajuda</button>
+          <button class="icon-button" id="notificationButton" type="button" aria-label="Notificações">•</button>
           <div class="profile-chip">
             <span class="avatar">ML</span>
             <div>
@@ -58,8 +65,6 @@
     </div>
 
     <div class="toast-stack" id="toastStack" aria-live="polite"></div>
-    <div class="modal-root" id="modalRoot" aria-hidden="true"></div>
-
     <script src="script.js"></script>
   </body>
 </html>
