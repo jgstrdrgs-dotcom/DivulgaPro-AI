@@ -74,6 +74,7 @@ const suggestions = [
   "Criar uma campanha",
   "Quero divulgar um tênis feminino.",
   "Quero criar uma promoção para minha loja.",
+  "Quero fazer Stories para um produto.",
   "Criar Stories",
   "Criar roteiro de vídeo",
   "Criar oferta",
