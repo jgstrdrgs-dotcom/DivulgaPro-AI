@@ -3,183 +3,62 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DivulgaPro | Presenca digital para negocios locais</title>
+    <title>DivulgaPro | Plataforma de campanhas para comerciantes</title>
     <meta
       name="description"
-      content="DivulgaPro cria campanhas, conteudo e presenca digital para negocios locais que querem vender mais com clareza."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
+      content="Aplicativo web profissional para transformar fotos de produtos em campanhas completas para Instagram, Stories, WhatsApp, Reels e TikTok."
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="site-header">
-      <a class="brand" href="#top" aria-label="DivulgaPro inicio">
-        <span class="brand-mark">DP</span>
-        <span>DivulgaPro</span>
-      </a>
-      <nav class="nav-links" aria-label="Navegacao principal">
-        <a href="#servicos">Servicos</a>
-        <a href="#metodo">Metodo</a>
-        <a href="#planos">Planos</a>
-        <a href="#contato">Contato</a>
-      </nav>
-      <a class="header-action" href="https://wa.me/5500000000000" target="_blank" rel="noreferrer">
-        Chamar no WhatsApp
-      </a>
-    </header>
-
-    <main id="top">
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Marketing simples para negocios que precisam aparecer</p>
-          <h1>Divulgacao profissional para transformar atencao em clientes.</h1>
-          <p class="hero-text">
-            A DivulgaPro cuida da sua presenca digital com estrategia, criativos e campanhas
-            objetivas para sua empresa ser encontrada, lembrada e escolhida.
-          </p>
-          <div class="hero-actions">
-            <a class="button primary" href="#contato">Pedir diagnostico</a>
-            <a class="button secondary" href="#servicos">Ver servicos</a>
+    <div class="app-shell" data-sidebar="aberta">
+      <aside class="sidebar" aria-label="Menu principal">
+        <div class="brand-block">
+          <div class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <path d="M9 28h7l17 8V12L16 20H9a4 4 0 0 0-4 4v0a4 4 0 0 0 4 4Z" />
+              <path d="M18 30v7a3 3 0 0 0 3 3h4l-5-10Z" />
+              <path d="M37 19l5-3M38 24h6M37 29l5 3" />
+            </svg>
           </div>
-          <dl class="hero-metrics" aria-label="Destaques da DivulgaPro">
-            <div>
-              <dt>7 dias</dt>
-              <dd>para colocar sua campanha no ar</dd>
-            </div>
-            <div>
-              <dt>3 canais</dt>
-              <dd>conteudo, trafego e WhatsApp alinhados</dd>
-            </div>
-            <div>
-              <dt>100%</dt>
-              <dd>focado em vendas locais</dd>
-            </div>
-          </dl>
-        </div>
-        <div class="hero-panel" aria-label="Resumo de campanha">
-          <div class="panel-top">
-            <span>Campanha ativa</span>
-            <strong>Setembro</strong>
-          </div>
-          <div class="campaign-card">
-            <span class="status-dot"></span>
-            <div>
-              <strong>Oferta da semana</strong>
-              <p>Anuncios e posts levando clientes direto para o WhatsApp.</p>
-            </div>
-          </div>
-          <div class="chart" aria-hidden="true">
-            <span style="height: 42%"></span>
-            <span style="height: 68%"></span>
-            <span style="height: 55%"></span>
-            <span style="height: 82%"></span>
-            <span style="height: 74%"></span>
-            <span style="height: 96%"></span>
-          </div>
-          <div class="panel-bottom">
-            <span>Leads estimados</span>
-            <strong>+38%</strong>
+          <div class="brand-copy">
+            <strong>DivulgaPro</strong>
+            <span>Transforme produtos em campanhas que vendem.</span>
           </div>
         </div>
-      </section>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <button class="collapse-button" id="collapseSidebar" type="button">Recolher menu</button>
+      </aside>
 
-      <section class="section services" id="servicos">
-        <div class="section-heading">
-          <p class="eyebrow">Servicos</p>
-          <h2>O essencial para sua marca vender melhor online.</h2>
-        </div>
-        <div class="service-grid">
-          <article>
-            <span class="icon">01</span>
-            <h3>Campanhas pagas</h3>
-            <p>Anuncios no Google, Instagram e Facebook com verba controlada e objetivo claro.</p>
-          </article>
-          <article>
-            <span class="icon">02</span>
-            <h3>Conteudo comercial</h3>
-            <p>Posts, chamadas e ofertas pensadas para explicar seu valor e gerar conversa.</p>
-          </article>
-          <article>
-            <span class="icon">03</span>
-            <h3>Presenca local</h3>
-            <p>Perfil, reputacao e informacoes importantes ajustadas para quem procura perto.</p>
-          </article>
-        </div>
-      </section>
+      <div class="mobile-backdrop" id="mobileBackdrop"></div>
 
-      <section class="section method" id="metodo">
-        <div class="method-copy">
-          <p class="eyebrow">Metodo</p>
-          <h2>Comecamos pelo que move caixa, nao por modinha.</h2>
-          <p>
-            Antes de publicar, entendemos sua oferta, publico, margem e rotina de atendimento.
-            Assim a divulgacao nasce conectada ao jeito real da sua empresa vender.
-          </p>
-        </div>
-        <ol class="steps">
-          <li><strong>Diagnostico</strong><span>Mapeamos oportunidades e gargalos.</span></li>
-          <li><strong>Plano de acao</strong><span>Definimos canais, mensagens e verba.</span></li>
-          <li><strong>Execucao</strong><span>Publicamos, medimos e ajustamos toda semana.</span></li>
-        </ol>
-      </section>
-
-      <section class="section plans" id="planos">
-        <div class="section-heading">
-          <p class="eyebrow">Planos</p>
-          <h2>Escolha o ritmo ideal para o seu momento.</h2>
-        </div>
-        <div class="plan-grid">
-          <article>
-            <h3>Start</h3>
-            <p>Para organizar a presenca digital e iniciar divulgacao com consistencia.</p>
-            <strong>sob consulta</strong>
-          </article>
-          <article class="featured">
-            <h3>Growth</h3>
-            <p>Para negocios que querem campanhas continuas e acompanhamento proximo.</p>
-            <strong>sob consulta</strong>
-          </article>
-          <article>
-            <h3>Pro</h3>
-            <p>Para operacoes com metas maiores, multiplos canais e relatorios detalhados.</p>
-            <strong>sob consulta</strong>
-          </article>
-        </div>
-      </section>
-
-      <section class="contact" id="contato">
-        <div>
-          <p class="eyebrow">Contato</p>
-          <h2>Vamos montar uma divulgacao que faz sentido para sua empresa?</h2>
-        </div>
-        <form class="contact-form">
-          <label>
-            Nome
-            <input type="text" name="nome" placeholder="Seu nome" required />
+      <section class="workspace">
+        <header class="topbar">
+          <button class="icon-button menu-button" id="openMenu" type="button" aria-label="Abrir menu">☰</button>
+          <div class="page-title">
+            <span id="breadcrumb">Dashboard</span>
+            <h1 id="pageTitle">Dashboard</h1>
+          </div>
+          <label class="search-box">
+            <span>🔎</span>
+            <input id="globalSearch" type="search" placeholder="Buscar campanha, produto ou ideia" />
           </label>
-          <label>
-            WhatsApp
-            <input type="tel" name="whatsapp" placeholder="(00) 00000-0000" required />
-          </label>
-          <label>
-            O que voce vende?
-            <textarea name="mensagem" rows="4" placeholder="Conte um pouco sobre seu negocio"></textarea>
-          </label>
-          <button type="submit">Enviar interesse</button>
-          <p class="form-note" role="status"></p>
-        </form>
-      </section>
-    </main>
+          <button class="icon-button" id="notificationButton" type="button" aria-label="Notificações">🔔</button>
+          <div class="profile-chip">
+            <span class="avatar">ML</span>
+            <div>
+              <strong>Moda Lima</strong>
+              <small>Loja conectada</small>
+            </div>
+          </div>
+        </header>
 
-    <footer>
-      <span>DivulgaPro</span>
-      <span>Marketing digital direto ao ponto.</span>
-    </footer>
+        <main id="appContent" class="content-area" tabindex="-1"></main>
+      </section>
+    </div>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+    <div class="modal-root" id="modalRoot" aria-hidden="true"></div>
 
     <script src="script.js"></script>
   </body>
