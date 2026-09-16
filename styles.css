@@ -24,6 +24,8 @@
 }
 * { box-sizing: border-box; }
 [hidden], .hidden { display: none !important; }
+.skip-link { position: fixed; top: var(--spacing-12); left: var(--spacing-12); z-index: 100; transform: translateY(-160%); padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-sm); background: var(--color-graphite); color: var(--color-canvas-white); transition: transform 200ms ease; }
+.skip-link:focus { transform: none; }
 html { scroll-behavior: smooth; }
 body { margin: 0; overflow-x: clip; background: var(--surface); color: var(--text); font-family: var(--font-inter); font-size: var(--text-caption); line-height: var(--leading-caption); }
 body:has(.app-shell[data-theme="escuro"]) { --surface: var(--color-graphite); --surface-subtle: var(--color-steel); --surface-muted: var(--color-steel); --text: var(--color-canvas-white); --secondary: var(--color-ash); --border: var(--color-slate); color-scheme: dark; }
