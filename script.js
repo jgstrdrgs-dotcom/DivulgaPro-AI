@@ -4,6 +4,42 @@ const pageTitle = document.querySelector("#pageTitle");
 const breadcrumb = document.querySelector("#breadcrumb");
 const toastStack = document.querySelector("#toastStack");
 
+let revealObserver;
+function revealSections() {
+  revealObserver?.disconnect();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(({ target, isIntersecting }) => {
+      if (!isIntersecting) return;
+      target.classList.remove("reveal-pending");
+      target.classList.add("reveal-visible");
+      revealObserver.unobserve(target);
+    });
+  }, { threshold: 0.05 });
+  content.querySelectorAll(".model-card, .campaign-showcase, .grid-2 > *, .grid-3 > *, .story-card").forEach((element, index) => {
+    element.style.setProperty("--reveal-delay", `${(index % 4) * 40}ms`);
+    element.classList.add("reveal-pending");
+    revealObserver.observe(element);
+  });
+}
+
+let profileCloseTimer;
+function setProfileOpen(open) {
+  clearTimeout(profileCloseTimer);
+  state.profileOpen = open;
+  const menu = document.querySelector("#profileMenu");
+  document.querySelector("#profileButton").setAttribute("aria-expanded", String(open));
+  menu.classList.toggle("is-closing", !open);
+  menu.inert = !open;
+  if (open) menu.hidden = false;
+  else profileCloseTimer = setTimeout(() => { menu.hidden = true; }, 150);
+}
+
+function setMobileMenu(open) {
+  app.classList.toggle("mobile-open", open);
+  document.querySelector("#openMenu").setAttribute("aria-expanded", String(open));
+}
+
 const icons = {
   home: "⌂", nova: "✦", campanhas: "▦", produtos: "□", stories: "▯", video: "▶",
   texto: "T", whats: "◌", calendario: "◫", calc: "%", ideias: "✧", marca: "◆", config: "⚙"
@@ -75,8 +111,7 @@ const suggestions = [
   "Criar Stories",
   "Criar roteiro de vídeo",
   "Criar oferta",
-  "Criar publicação para Instagram",
-  "Criar divulgação para WhatsApp"
+  "Criar publicação para Instagram"
 ];
 
 const models = [
@@ -216,8 +251,13 @@ function setPage(page, showPanel = true) {
   state.page = page;
   state.panel = showPanel;
   app.classList.toggle("landing-mode", !state.panel);
-  app.classList.remove("mobile-open");
-  document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.page === page));
+  setMobileMenu(false);
+  setProfileOpen(false);
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    const active = item.dataset.page === page;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-current", active ? "page" : "false");
+  });
   const current = menuItems.find(([id]) => id === page);
   pageTitle.textContent = current ? current[2] : "Início";
   breadcrumb.textContent = `DivulgaPro AI / ${pageTitle.textContent}`;
@@ -228,7 +268,7 @@ function setPage(page, showPanel = true) {
 function renderMenu() {
   const nav = document.querySelector("#sidebarNav");
   nav.innerHTML = menuItems.map(([id, icon, label], index) => `${index === 11 ? '<div class="nav-separator"></div>' : ""}
-    <button class="nav-item ${id === state.page ? "active" : ""}" data-page="${id}" data-title="${label}" type="button">
+    <button class="nav-item ${id === state.page ? "active" : ""}" data-page="${id}" data-title="${label}" aria-current="${id === state.page ? "page" : "false"}" type="button">
       <span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>
     </button>`).join("");
   nav.addEventListener("click", (event) => {
@@ -242,12 +282,16 @@ function landingPage() {
     <div class="hero-stage">
       <div class="hero-copy">
         <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> Seu estúdio de campanhas com IA</div>
-        <h1>O que você<br><em>deseja criar?</em></h1>
+        <h1 id="creationTitle">O que você deseja criar?</h1>
         <p>Descreva sua ideia e transforme seu produto em uma campanha pronta para divulgar.</p>
         ${createBox()}
         <div class="quick-heading"><span>Comece por uma ideia</span><small>ou escreva do seu jeito</small></div>
-        <div class="quick-suggestions">${suggestions.map((item) => `<button class="suggestion" data-action="suggest" data-value="${item}">${item}</button>`).join("")}</div>
+        <div class="quick-suggestions">${suggestions.map((item) => `<button class="suggestion ${state.prompt === item ? "selected" : ""}" data-action="suggest" data-value="${item}" aria-pressed="${state.prompt === item}">${item}</button>`).join("")}</div>
       </div>
+    </div>
+    ${modelsSection()}
+    <section class="campaign-showcase" aria-label="Exemplo de campanha">
+      <div class="showcase-intro"><span class="section-kicker">Do produto à campanha</span><h2>Seu próximo destaque<br>começa com uma ideia.</h2><p>Transforme produtos em campanhas profissionais.</p><button class="small-button" data-action="focus-create">Começar a criar <span aria-hidden="true">↗</span></button></div>
       <div class="hero-visual" aria-label="Prévia de uma campanha criada pelo DivulgaPro AI">
         <div class="visual-orbit orbit-one"></div><div class="visual-orbit orbit-two"></div>
         <div class="showcase-card">
@@ -259,8 +303,7 @@ function landingPage() {
         <div class="floating-stat"><span class="floating-icon">✦</span><div><strong>10 modelos</strong><small>para começar agora</small></div></div>
         <div class="floating-note"><span>+24</span><small>ideias geradas</small></div>
       </div>
-    </div>
-    ${modelsSection()}
+    </section>
     <section class="grid-2">
       <div class="card"><div class="section-title"><h2>Campanhas recentes</h2><button class="small-button" data-action="open-result">Abrir</button></div>${campaignList()}</div>
       <div class="empty-state"><h2>Novo por aqui?</h2><p class="muted">Comece descrevendo um produto, uma oferta ou o canal onde quer divulgar. O app organiza o restante com dados simulados realistas.</p><button class="button" data-action="focus-create">Criar primeira campanha</button></div>
@@ -271,13 +314,14 @@ function landingPage() {
 }
 
 function createBox() {
-  const showDetails = state.createExpanded || Boolean(state.prompt.trim());
+  const showDetails = state.createExpanded;
   const details = state.createDetails;
   return `<div class="create-box ${showDetails ? "is-expanded" : ""} ${state.status === "loading" ? "is-loading" : ""}" data-create-box>
+    <label class="composer-label" for="smartPrompt">O que você deseja criar?</label>
     <div class="create-input-row">
       <span class="ai-icon" aria-hidden="true"><span class="spark-icon">✦</span></span>
       <div class="prompt-column">
-        <textarea id="smartPrompt" maxlength="280" aria-label="Descreva o que você deseja criar" placeholder="Descreva o que você deseja criar">${escapeHtml(state.prompt)}</textarea>
+        <textarea id="smartPrompt" maxlength="280" aria-describedby="charCount" placeholder="Descreva o que você deseja criar">${escapeHtml(state.prompt)}</textarea>
         ${state.prompt.trim() ? `<div class="context-suggestions"><span>Você pode incluir:</span><button data-action="suggest" data-value="Quero divulgar ${products[state.selectedProductId - 1].nome}">produto</button><button data-action="suggest" data-value="Quero criar uma promoção para minha loja">objetivo</button><button data-action="suggest" data-value="Quero criar uma campanha para o WhatsApp">canal</button></div>` : ""}
       </div>
       <button class="clear-prompt ${state.prompt.trim() ? "" : "hidden"}" data-action="clear-prompt" type="button" aria-label="Limpar descrição">×</button>
@@ -295,11 +339,11 @@ function createBox() {
     <div class="create-actions">
       <div class="create-tools">
         <button class="small-button tool-button" data-action="attach-image"><span class="icon icon-image" aria-hidden="true"></span> Anexar foto</button>
-        <button class="small-button tool-button" data-action="toggle-create-details"><span class="icon icon-plus" aria-hidden="true"></span> ${showDetails ? "Ocultar detalhes" : "Adicionar detalhes"}</button>
+        <button class="small-button tool-button" data-action="toggle-create-details" aria-expanded="${showDetails}"><span class="icon icon-plus" aria-hidden="true"></span> ${showDetails ? "Ocultar detalhes" : "Adicionar detalhes"}</button>
       </div>
       <span class="char-count" id="charCount">${state.prompt.length}/280</span>
-      <button class="button create-button" data-action="create-campaign" ${state.status === "loading" ? "disabled" : ""}><span class="spark-icon">${state.status === "loading" ? "…" : "✦"}</span> ${state.status === "loading" ? "Criando campanha" : "Criar campanha"}</button>
     </div>
+    <div class="create-submit"><button class="button create-button" data-action="create-campaign" aria-busy="${state.status === "loading"}" ${state.status === "loading" ? "disabled" : ""}><span class="spark-icon" aria-hidden="true">✦</span><span>Criar campanha</span></button><span class="keyboard-hint">Enter para criar · Shift + Enter para nova linha</span></div>
     <div id="createStatus" aria-live="polite">${state.status === "loading" ? `<div class="loading-message"><span class="loading-dots">● ● ●</span> Organizando estratégia, Stories e textos...</div>` : ""}</div>
   </div>`;
 }
@@ -313,11 +357,11 @@ function modelsSection() {
   const filters = ["Todos", "Campanhas", "Stories", "Vídeos", "Instagram", "WhatsApp", "Ofertas", "Datas comemorativas", "Produtos"];
   return `<section class="models-gallery">
     <div class="model-toolbar">
-      <div><span class="section-kicker">Modelos inteligentes</span><h2>Comece com um modelo</h2><p class="muted">Escolha um ponto de partida e personalize sua campanha.</p></div>
-      <label class="template-search"><span class="icon icon-search" aria-hidden="true"></span><input id="modelSearch" aria-label="Buscar modelos" placeholder="Buscar modelos" value="${state.modelSearch}"></label>
+      <div><span class="section-kicker">Modelos inteligentes</span><h2>Comece por um modelo</h2><p class="muted">Escolha um ponto de partida e personalize sua campanha.</p></div>
+      <label class="template-search"><span class="icon icon-search" aria-hidden="true"></span><input id="modelSearch" aria-label="Buscar modelos" placeholder="Buscar modelos" value="${escapeHtml(state.modelSearch)}"></label>
     </div>
     <div class="filters">${filters.map((f) => `<button class="small-button filter ${state.modelFilter === f ? "active" : ""}" data-action="filter-model" data-filter="${f}">${f}</button>`).join("")}</div>
-    <div class="models-grid" style="margin-top:22px">${filtered.map(([name, desc, cat, icon, tag, accent], index) => `<article class="model-card model-card-${accent}" style="--delay:${index * 55}ms">
+    <div class="models-grid">${filtered.map(([name, desc, cat, icon, tag, accent], index) => `<article class="model-card model-card-${accent}" style="--delay:${index * 55}ms">
       <div class="model-visual"><span class="model-icon">${icon}</span><span class="model-shape model-shape-a"></span><span class="model-shape model-shape-b"></span></div>
       <div class="model-card-meta"><span class="chip">${cat}</span>${tag ? `<span class="model-tag">${tag}</span>` : ""}</div><h3>${name}</h3><p class="muted">${desc}</p><button class="button model-action" data-action="use-model" data-value="${name}">Usar modelo <span aria-hidden="true">→</span></button>
     </article>`).join("") || `<div class="empty-state"><strong>Nenhum modelo encontrado.</strong><span>Ajuste a busca ou remova o filtro.</span></div>`}</div>
@@ -389,12 +433,12 @@ function productsPage() {
   return `<section class="section-title"><div><h2>Produtos</h2><p class="muted">Cadastre dados reais para campanhas mais precisas.</p></div><button class="button" data-action="toast" data-message="Formulário pronto para novo produto.">Adicionar produto</button></section><section class="grid-3">${products.map(productCard).join("")}</section><section class="form-panel"><h2>Novo produto</h2><div class="upload-zone" data-upload><div><strong>Foto principal e até cinco adicionais</strong><p class="muted">Clique ou arraste imagens.</p><input type="file" accept="image/*" multiple hidden></div></div><div class="upload-preview">${uploadPreviewMarkup()}</div>${productForm()}</section>`;
 }
 function productCard(product) {
-  return `<article class="card product-card"><div class="product-image" style="background:linear-gradient(135deg,${product.cor},#fff)"></div><h3>${product.nome}</h3><p class="muted">${product.desc}</p><div><span class="old-price">${money(product.preco)}</span> <span class="price">${money(product.promo)}</span></div><div class="product-meta"><span class="chip">${product.categoria}</span><span class="chip">Estoque: ${product.estoque}</span><span class="chip">${product.status}</span></div><div class="button-row"><button class="small-button" data-action="toast" data-message="Produto aberto para edição.">Editar</button><button class="small-button" data-action="toast" data-message="Produto duplicado.">Duplicar</button><button class="danger-button" data-action="toast" data-message="Produto arquivado.">Arquivar</button><button class="button" data-action="product-campaign" data-id="${product.id}">Criar campanha</button></div></article>`;
+  return `<article class="card product-card"><div class="product-image" aria-label="Ilustração do produto"><span aria-hidden="true">□</span></div><h3>${product.nome}</h3><p class="muted">${product.desc}</p><div><span class="old-price">${money(product.preco)}</span> <span class="price">${money(product.promo)}</span></div><div class="product-meta"><span class="chip">${product.categoria}</span><span class="chip">Estoque: ${product.estoque}</span><span class="chip">${product.status}</span></div><div class="button-row"><button class="small-button" data-action="toast" data-message="Produto aberto para edição.">Editar</button><button class="small-button" data-action="toast" data-message="Produto duplicado.">Duplicar</button><button class="danger-button" data-action="toast" data-message="Produto arquivado.">Arquivar</button><button class="button" data-action="product-campaign" data-id="${product.id}">Criar campanha</button></div></article>`;
 }
 function productForm() {
   return `<div class="form-grid">${field("Nome do produto","Vestido Linho Aurora")}${field("Categoria","Moda feminina")}${field("Preço normal","189,90")}${field("Preço promocional","159,90")}${field("Cores","Areia, branco e terracota")}${field("Tamanhos","P, M, G")}${field("Características","Linho misto, alça ajustável")}${field("Estoque","12")}${field("Público indicado","Mulheres que buscam looks leves")}${field("Status","Ativo")}<label class="field full-width"><span>Observações</span><textarea rows="3">Não informar composição que não esteja na etiqueta.</textarea></label></div><div class="button-row"><button class="button" data-action="toast" data-message="Produto salvo na simulação.">Salvar alterações</button></div>`;
 }
-function field(label, value = "") { return `<label class="field"><span>${label}</span><input value="${value}"></label>`; }
+function field(label, value = "") { return `<label class="field"><span>${escapeHtml(label)}</span><input value="${escapeHtml(value)}"></label>`; }
 
 function campaignFlowPage() {
   return `${createBox()}<section class="stepper">${["Produto","Dados","Estilo","Canais","Resultado"].map((s, i) => `<div class="step ${state.campaignStep === i + 1 ? "active" : ""}">Etapa ${i + 1}<br>${s}</div>`).join("")}</section><section class="form-panel">${campaignStep()}</section>`;
@@ -407,7 +451,7 @@ function campaignStep() {
   return resultPage();
 }
 function option(label, type, name) { return `<label class="option-card"><input type="${type}" name="${name}" checked> ${label}</label>`; }
-function stepButtons(generate = false) { return `<div class="button-row" style="margin-top:16px"><button class="small-button" data-action="prev-step">Voltar</button><button class="button" data-action="${generate ? "create-campaign" : "next-step"}">${generate ? "Gerar conteúdo" : "Próxima etapa"}</button></div>`; }
+function stepButtons(generate = false) { return `<div class="button-row step-actions"><button class="small-button" data-action="prev-step">Voltar</button><button class="button" data-action="${generate ? "create-campaign" : "next-step"}">${generate ? "Gerar conteúdo" : "Próxima etapa"}</button></div>`; }
 
 function brandPage() {
   return `<section class="grid-2"><div class="form-panel"><h2>Identidade da marca</h2><div class="form-grid">${field("Nome da loja", state.brand.empresa)}${field("Logo","Enviar arquivo")}${field("Cores","Laranja, grafite e branco")}${field("WhatsApp", state.brand.whatsapp)}${field("Instagram", state.brand.instagram)}${field("Endereço","Rua das Flores, 120")}${field("Horário","Segunda a sábado, 9h às 18h")}${field("Formas de pagamento","Pix, cartão e dinheiro")}${field("Forma de entrega","Retirada e motoboy local")}${field("Público","Mulheres de 25 a 45 anos")}${field("Segmento", state.brand.segmento)}<label class="field"><span>Tom de comunicação</span><select><option>elegante</option><option>popular</option><option>divertido</option><option>sofisticado</option><option>jovem</option><option>direto</option><option>promocional</option></select></label></div><button class="button" data-action="toast" data-message="Identidade salva.">Salvar alterações</button></div><div class="card"><h2>Como a IA usará esses dados</h2><p class="muted">A geração futura deve adaptar textos ao segmento, tom e canais informados, sem inventar preço, estoque ou características.</p></div></section>`;
@@ -457,12 +501,13 @@ function render() {
     calculadora: () => `<section class="form-panel"><h2>Calculadora de ofertas</h2>${calculator()}</section>`,
     ideias: ideasPage,
     marca: brandPage,
-    configuracoes: () => `<section class="card"><h2>Configurações</h2><p class="muted">Tema claro como padrão, com tema escuro disponível para pré-visualização.</p><div class="button-row"><button class="button" data-action="theme" data-theme="claro">Tema claro</button><button class="ghost-button" data-action="theme" data-theme="escuro">Tema escuro</button></div><div class="error-state" style="margin-top:16px"><strong>Estado de erro simulado</strong><span>Quando uma integração falhar, o usuário verá uma mensagem clara e uma ação de tentar novamente.</span><button class="button" data-action="toast" data-message="Tentativa refeita.">Tentar novamente</button></div></section>`
+    configuracoes: () => `<section class="card"><h2>Configurações</h2><p class="muted">Tema claro como padrão, com tema escuro disponível para pré-visualização.</p><div class="button-row"><button class="button" data-action="theme" data-theme="claro">Tema claro</button><button class="ghost-button" data-action="theme" data-theme="escuro">Tema escuro</button></div><div class="error-state settings-error"><strong>Estado de erro simulado</strong><span>Quando uma integração falhar, o usuário verá uma mensagem clara e uma ação de tentar novamente.</span><button class="button" data-action="toast" data-message="Tentativa refeita.">Tentar novamente</button></div></section>`
   };
   content.innerHTML = (pages[state.page] || landingPage)();
   bindDynamicInputs();
   bindUploads();
   updateCalc();
+  revealSections();
 }
 
 function bindDynamicInputs() {
@@ -470,8 +515,6 @@ function bindDynamicInputs() {
   if (prompt) {
     prompt.addEventListener("input", () => {
       state.prompt = prompt.value;
-      state.createExpanded = true;
-      document.querySelector("[data-create-box]")?.classList.add("is-expanded");
       document.querySelector(".clear-prompt")?.classList.toggle("hidden", !state.prompt.trim());
       prompt.style.height = "auto";
       prompt.style.height = `${Math.min(prompt.scrollHeight, 190)}px`;
@@ -524,7 +567,7 @@ function bindDynamicInputs() {
 function bindUploads() {
   document.querySelectorAll("[data-upload]").forEach((zone) => {
     const input = zone.querySelector("input");
-    zone.addEventListener("click", () => input.click());
+    zone.addEventListener("click", (event) => { if (event.target !== input) input.click(); });
     zone.addEventListener("dragover", (event) => { event.preventDefault(); zone.classList.add("dragover"); });
     zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
     zone.addEventListener("drop", (event) => { event.preventDefault(); zone.classList.remove("dragover"); handleFiles(event.dataTransfer.files); });
@@ -551,6 +594,7 @@ function handleFiles(files) {
 }
 
 function createCampaign() {
+  if (state.status === "loading") return;
   const status = document.querySelector("#createStatus");
   const quickProduct = document.querySelector("#quickProduct");
   const quickGoal = document.querySelector("#quickGoal");
@@ -569,12 +613,12 @@ function createCampaign() {
     toast("Informe uma ideia para criar a campanha.");
     return;
   }
-  if (status) status.innerHTML = `<div class="skeleton"></div>`;
+  if (status) status.innerHTML = `<div class="loading-message"><span class="loading-dots" aria-hidden="true">✦</span> Organizando estratégia, Stories e textos...</div>`;
   state.status = "loading";
   const submit = document.querySelector("[data-action=\"create-campaign\"]");
   if (submit) {
     submit.disabled = true;
-    submit.innerHTML = `<span class="spark-icon">…</span> Criando campanha`;
+    submit.setAttribute("aria-busy", "true");
   }
   setTimeout(() => {
     generated = campaignGeneratorService.generate({
@@ -632,15 +676,21 @@ document.addEventListener("click", async (event) => {
 
 document.querySelector("#collapseSidebar").addEventListener("click", () => {
   app.dataset.sidebar = app.dataset.sidebar === "recolhida" ? "aberta" : "recolhida";
+  document.querySelector("#collapseSidebar").setAttribute("aria-label", app.dataset.sidebar === "recolhida" ? "Expandir menu" : "Recolher menu");
 });
-document.querySelector("#openMenu").addEventListener("click", () => app.classList.add("mobile-open"));
-document.querySelector("#mobileBackdrop").addEventListener("click", () => app.classList.remove("mobile-open"));
+document.querySelector("#openMenu").addEventListener("click", () => setMobileMenu(!app.classList.contains("mobile-open")));
+document.querySelector("#mobileBackdrop").addEventListener("click", () => setMobileMenu(false));
 document.querySelector("#notificationButton").addEventListener("click", () => toast("3 notificações: campanha pronta, produto sem foto e calendário atualizado."));
 document.querySelector("#profileButton").addEventListener("click", () => {
-  state.profileOpen = !state.profileOpen;
-  const menu = document.querySelector("#profileMenu");
-  menu.hidden = !state.profileOpen;
-  document.querySelector("#profileButton").setAttribute("aria-expanded", String(state.profileOpen));
+  setProfileOpen(!state.profileOpen);
+});
+document.addEventListener("click", (event) => {
+  if (state.profileOpen && !event.target.closest(".profile-wrap")) setProfileOpen(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (state.profileOpen) { setProfileOpen(false); document.querySelector("#profileButton").focus(); }
+  if (app.classList.contains("mobile-open")) { setMobileMenu(false); document.querySelector("#openMenu").focus(); }
 });
 document.querySelector("#globalSearch").addEventListener("input", (event) => {
   if (event.target.value) toast(`Busca simulada por: ${event.target.value}`);

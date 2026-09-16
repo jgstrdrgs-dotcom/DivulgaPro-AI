@@ -8,6 +8,7 @@
       name="description"
       content="DivulgaPro AI transforma ideias, produtos e fotos em campanhas profissionais para Instagram, Stories, WhatsApp, Reels e TikTok."
     />
+    <link rel="stylesheet" href="theme.tokens.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -17,7 +18,7 @@
     </div>
 
     <div class="app-shell landing-mode" data-sidebar="aberta" data-theme="claro">
-      <aside class="sidebar" aria-label="Menu principal">
+      <aside class="sidebar" id="sidebar" aria-label="Menu principal">
         <div class="brand-block">
           <div class="logo-mark" aria-hidden="true">
             <svg viewBox="0 0 48 48">
@@ -39,7 +40,7 @@
 
       <section class="workspace">
         <header class="topbar">
-          <button class="icon-button menu-button" id="openMenu" type="button" aria-label="Abrir menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
+          <button class="icon-button menu-button" id="openMenu" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar"><span class="icon icon-menu" aria-hidden="true"></span></button>
           <a class="top-logo" href="#" data-action="home" aria-label="Ir para o início">
             <span class="mini-logo" aria-hidden="true"><span class="logo-spark">✦</span></span>
             <strong>DivulgaPro AI</strong>
@@ -71,6 +72,7 @@
         </header>
 
         <main id="appContent" class="content-area" tabindex="-1"></main>
+        <footer class="site-footer"><strong>DivulgaPro AI <span aria-hidden="true">✦</span></strong><span>Transforme produtos em campanhas profissionais.</span></footer>
       </section>
     </div>
 
