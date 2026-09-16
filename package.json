@@ -1,0 +1,9 @@
+{
+  "name": "divulguiar",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node divulgaia/scripts/build.cjs",
+    "test": "node divulgaia/scripts/verify-agent.cjs"
+  }
+}
