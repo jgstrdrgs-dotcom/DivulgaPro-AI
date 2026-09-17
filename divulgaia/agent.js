@@ -93,7 +93,7 @@ function renderConversationHistory() {
   section.querySelectorAll("[data-conversation]").forEach(
     (button) =>
       (button.onclick = () => {
-        if (["thinking", "streaming"].includes(state.status)) {
+        if (["submitting", "transforming", "thinking", "streaming"].includes(state.status)) {
           toast("Aguarde a conclusão da resposta.");
           return;
         }
@@ -175,6 +175,7 @@ NAV.splice(
   ].map(([id, label, icon, mode]) => ({ id, label, icon, mode })),
 );
 function navigate(route, label) {
+  if (["submitting", "transforming"].includes(state.status)) return;
   state.route = route;
   state.active = label || route;
   setDrawer(false);
@@ -276,11 +277,11 @@ renderRoute = function () {
     .forEach((el) => el.setAttribute("aria-label", "Alternar favorito"));
 };
 function composer() {
-  return `<form class="composer" id="composer"><textarea id="createInput" rows="2" aria-label="O que você deseja criar?" placeholder="O que você deseja criar?" maxlength="6000">${escapeHtml(state.draft)}</textarea><div id="thumbSlot">${state.pendingImage ? `<img class="chat-image" src="${state.pendingImage}" alt="Imagem anexada"><button type="button" class="icon-button" id="removeImage" aria-label="Remover imagem">${icons.close}</button>` : ""}</div><div class="composer-tools"><button type="button" class="icon-button" id="attachBtn" aria-label="Anexar produto ou imagem" title="Anexar produto ou imagem">${icons.attach}</button><input type="file" id="attachInput" accept="image/png,image/jpeg,image/webp" hidden><select id="mode" aria-label="Tipo de conteúdo"><option value="">Tipo de conteúdo</option>${CATEGORIES.map((c) => `<option value="${c.id}" ${state.mode === c.id ? "selected" : ""}>${c.label}</option>`).join("")}</select><button class="send" id="submitCreate" ${["thinking", "streaming"].includes(state.status) ? "disabled" : ""}>Criar ${icons.arrow}</button></div></form>`;
+  return `<form class="composer" id="composer"><textarea id="createInput" rows="2" aria-label="O que você deseja criar?" placeholder="O que você deseja criar?" maxlength="6000">${escapeHtml(state.draft)}</textarea><div id="thumbSlot">${state.pendingImage ? `<img class="chat-image" src="${state.pendingImage}" alt="Imagem anexada"><button type="button" class="icon-button" id="removeImage" aria-label="Remover imagem">${icons.close}</button>` : ""}</div><div class="composer-tools"><button type="button" class="icon-button" id="attachBtn" aria-label="Anexar produto ou imagem" title="Anexar produto ou imagem">${icons.attach}</button><input type="file" id="attachInput" accept="image/png,image/jpeg,image/webp" hidden><select id="mode" aria-label="Tipo de conteúdo"><option value="">Tipo de conteúdo</option>${CATEGORIES.map((c) => `<option value="${c.id}" ${state.mode === c.id ? "selected" : ""}>${c.label}</option>`).join("")}</select><button class="send" id="submitCreate" ${["submitting", "transforming", "thinking", "streaming"].includes(state.status) ? "disabled" : ""}>Criar ${icons.arrow}</button></div></form>`;
 }
 renderHome = function (main) {
   const chatting = state.messages.length > 0;
-  main.innerHTML = `<section class="agent ${chatting ? "conversation" : ""}"><div class="agent-intro">${chatting ? "" : '<span class="eyebrow">Um novo jeito de divulgar</span>'}<h1>Seu agente de marketing <em>pessoal</em></h1>${chatting ? "" : "<p>Transforme uma ideia ou produto em uma divulgação completa para sua marca.</p>"}</div><div id="messages" role="log" aria-label="Conversa com o agente"></div><div class="thinking" id="thinking" role="status" ${["thinking", "streaming"].includes(state.status) ? "" : "hidden"}><span class="thinking-dot"></span><span>${state.status === "streaming" ? "Criando sua divulgação…" : "Pensando..."}</span></div>${composer()}<p class="composer-note">Rascunhos locais por modelos · Revise antes de publicar${chatting ? "" : " · Enter para criar"}</p>${chatting ? "" : `<p class="suggestions-label">UM PONTO DE PARTIDA PARA SUA PRÓXIMA IDEIA</p><div class="suggestions">${suggestions.map(([type, title, desc, icon]) => `<button class="suggestion" data-suggestion="${type}">${icons[icon]}<span><strong>${title}</strong><small>${desc}</small></span></button>`).join("")}</div><div class="agent-footer">Feito para quem cuida de cada detalhe do próprio negócio.</div>`}</section>`;
+  main.innerHTML = `<section class="agent ${chatting ? "conversation" : ""}"><div class="agent-intro">${chatting ? "" : '<span class="eyebrow">Um novo jeito de divulgar</span>'}<h1>Seu agente de marketing <em>pessoal</em></h1>${chatting ? "" : "<p>Transforme uma ideia ou produto em uma divulgação completa para sua marca.</p>"}</div><div id="messages" role="log" aria-label="Conversa com o agente"></div><div class="thinking" id="thinking" role="status" ${["submitting", "transforming", "thinking", "streaming"].includes(state.status) ? "" : "hidden"}><span class="thinking-dot"></span><span>${state.status === "streaming" ? "Criando sua divulgação…" : "Pensando..."}</span></div>${composer()}<p class="composer-note">Rascunhos locais por modelos · Revise antes de publicar${chatting ? "" : " · Enter para criar"}</p>${chatting ? "" : `<p class="suggestions-label">UM PONTO DE PARTIDA PARA SUA PRÓXIMA IDEIA</p><div class="suggestions">${suggestions.map(([type, title, desc, icon]) => `<button class="suggestion" data-suggestion="${type}">${icons[icon]}<span><strong>${title}</strong><small>${desc}</small></span></button>`).join("")}</div><div class="agent-footer">Feito para quem cuida de cada detalhe do próprio negócio.</div>`}</section>`;
   drawMessages();
   bindComposer();
   main.querySelectorAll("[data-suggestion]").forEach(
@@ -508,7 +509,7 @@ function actions(id) {
 }
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function submitRequest(override) {
-  if (["thinking", "streaming"].includes(state.status)) return;
+  if (["submitting", "transforming", "thinking", "streaming"].includes(state.status)) return;
   const prompt =
     override || document.querySelector("#createInput")?.value.trim();
   if (!prompt) {
@@ -630,7 +631,7 @@ function bindActions(root) {
             break;
           }
           case "again":
-            if (["thinking", "streaming"].includes(state.status)) {
+            if (["submitting", "transforming", "thinking", "streaming"].includes(state.status)) {
               toast("Aguarde a resposta atual.");
               return;
             }

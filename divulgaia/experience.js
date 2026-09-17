@@ -333,10 +333,7 @@ renderHome = function (main) {
 function updateSendLabel() {
   const button = document.querySelector("#submitCreate");
   if (button)
-    button.innerHTML =
-      (imageModes.has(state.mode) ? "Criar imagem" : "Enviar") +
-      " " +
-      icons.arrow;
+    button.innerHTML = "Enviar " + icons.arrow;
 }
 function currentHistory() {
   return state.messages
@@ -403,7 +400,7 @@ async function requestAgent(prompt, image, mode) {
   return entry;
 }
 submitRequest = async function (override) {
-  if (["thinking", "streaming"].includes(state.status)) return;
+  if (["submitting", "transforming", "thinking", "streaming"].includes(state.status)) return;
   const prompt = (
     override ||
     document.querySelector("#createInput")?.value ||
@@ -418,6 +415,8 @@ submitRequest = async function (override) {
     return;
   }
   const image = state.pendingImage;
+  const requestMode = state.mode;
+  if (window.prepareEditorialSubmission) await window.prepareEditorialSubmission();
   if (state.messages.at(-1)?.failed && state.messages.at(-1).text === prompt)
     state.messages.pop();
   const first = !state.messages.length;
@@ -428,7 +427,7 @@ submitRequest = async function (override) {
   state.status = "thinking";
   state.route = "home";
   state.firstTransition = first;
-  if (first || !document.querySelector("#composer")) render();
+  if (!document.querySelector("#composer")) render();
   else {
     drawMessages();
     const input = document.querySelector("#createInput");
@@ -455,7 +454,7 @@ submitRequest = async function (override) {
       drawMessages();
     }
     await wait(state.apiReady ? 0 : 450);
-    const entry = await requestAgent(prompt, image, state.mode);
+    const entry = await requestAgent(prompt, image, requestMode);
     if (entry.blocked) {
       user.text = "Solicitação não exibida.";
       user.image = null;
@@ -481,10 +480,13 @@ submitRequest = async function (override) {
         `[data-message="${entry.id}"] .response-body`,
       );
       if (body) {
-        const follow =
-          innerHeight + scrollY >= document.documentElement.scrollHeight - 240;
+        const history = document.querySelector(".conversation-scroll");
+        const follow = history
+          ? history.scrollHeight - history.scrollTop - history.clientHeight < 140
+          : innerHeight + scrollY >= document.documentElement.scrollHeight - 240;
         body.innerHTML = formatResponse(message.visible);
-        if (follow)
+        if (follow && history) history.scrollTop = history.scrollHeight;
+        else if (follow)
           document
             .querySelector("#thinking")
             ?.scrollIntoView({ block: "nearest", behavior: "auto" });
@@ -499,13 +501,14 @@ submitRequest = async function (override) {
     renderConversationHistory();
     if (state.route === "home") drawMessages();
   } catch (error) {
-    state.status = "idle";
+    state.status = "error";
     user.failed = true;
     state.draft = prompt;
     state.pendingImage = image;
     persist();
     if (state.route === "home") {
-      renderHome(document.querySelector("#main"));
+      drawMessages();
+      document.querySelector("#createInput").value = prompt;
       const alert = document.createElement("p");
       alert.setAttribute("role", "alert");
       alert.className = "chat-error";
@@ -513,7 +516,13 @@ submitRequest = async function (override) {
         error.name === "TimeoutError"
           ? "A geração demorou mais que o esperado. Seu pedido foi preservado para tentar novamente."
           : error.message;
-      document.querySelector("#composer").before(alert);
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "retry-request";
+      retry.textContent = "Tentar novamente";
+      retry.onclick = () => submitRequest(prompt);
+      alert.append(document.createTextNode(" "), retry);
+      document.querySelector("#thinking").before(alert);
     } else toast(error.message);
   } finally {
     if (state.route === "home") {
@@ -521,6 +530,7 @@ submitRequest = async function (override) {
       document.querySelector("#submitCreate").disabled = false;
       document.querySelector("#createInput").focus({ preventScroll: true });
     }
+    window.syncEditorialState?.();
   }
 };
 // A single lightweight spotlight for the page; the entire left sidebar is excluded.

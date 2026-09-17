@@ -8,6 +8,6 @@
   "scripts": {
     "start": "node server.cjs",
     "build": "node divulgaia/scripts/build.cjs",
-    "test": "node divulgaia/scripts/verify-agent.cjs"
+    "test": "node divulgaia/scripts/verify-editorial.cjs"
   }
 }
