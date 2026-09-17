@@ -22,22 +22,12 @@ const server = createServer();
     assert.equal(await page.locator('.drawer #conversationHistory').count(), 1);
     assert.equal(await page.locator('main .recent-card').count(), 0);
     for (const selector of ['body', '#main', '.drawer', '.suggestion', '.recent-card']) {
-      assert.equal(await page.locator(selector).first().evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(235, 230, 221)', `straw palette: ${selector}`);
+      assert.equal(await page.locator(selector).first().evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(250, 248, 245)', `straw palette: ${selector}`);
     }
-    const motion = el => {
-      const style = getComputedStyle(el, '::after');
-      return {duration: style.transitionDuration, curve: style.transitionTimingFunction, transform: style.transform};
-    };
-    assert.deepEqual(await page.locator('.agent h1').evaluate(motion), await page.locator('.send').evaluate(motion));
-    for (const selector of ['.agent h1', '.send']) {
-      const target = page.locator(selector);
-      await target.hover();
-      await page.waitForTimeout(450);
-      assert(await target.evaluate(el => parseFloat(getComputedStyle(el, '::after').left)) > 0, selector + ' hover');
-      await page.mouse.move(600, 70);
-      await page.waitForTimeout(450);
-      assert(await target.evaluate(el => parseFloat(getComputedStyle(el, '::after').left)) < 0, selector + ' reset');
-    }
+    const title = page.locator('.agent h1');
+    assert.equal(await title.evaluate(el => getComputedStyle(el, '::after').content), 'none');
+    await title.hover();
+    assert.equal(await title.evaluate(el => getComputedStyle(el, '::after').content), 'none');
     await page.screenshot({ path: 'qa-output/premium-desktop.png', fullPage: true });
     await page.locator('#composer').hover();
     await page.waitForTimeout(350);
@@ -61,7 +51,7 @@ const server = createServer();
     await page.locator('#createInput').press('Enter');
     await page.waitForFunction(() => state.status === 'complete');
     assert.equal(await page.locator('.message.user').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 104, 44)');
-    assert.equal(await page.locator('.message.assistant').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(235, 230, 221)');
+    assert.equal(await page.locator('.message.assistant').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(250, 248, 245)');
     assert(await page.locator('.response-body').innerText());
     const answer = await page.locator('.message.assistant').boundingBox();
     const center = await page.locator('#messages').boundingBox();
