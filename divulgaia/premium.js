@@ -34,14 +34,14 @@ document.addEventListener("keydown", event => {
 
 const premiumHistoryBase = renderConversationHistory;
 renderConversationHistory = function () {
-  const shortcuts = document.querySelector(".quick-actions");
-  if (!shortcuts) return;
+  const navigation = document.querySelector(".drawer-nav");
+  if (!navigation) return;
   const existing = document.querySelector("#conversationHistory");
   if (!existing) {
     const card = document.createElement("details");
     card.className = "recent-card premium-disclosure";
     card.innerHTML = `<summary>${icons.history}<span>Conversas recentes<small>Retome suas ideias</small></span><span class="disclosure-arrow">⌄</span></summary><div class="recent-panel"><div class="recent-heading"><strong>Suas conversas</strong><button type="button" class="icon-button recent-close" aria-label="Fechar conversas recentes">${icons.close}</button></div><section id="conversationHistory" class="conversation-history" aria-label="Histórico de conversas"></section><button type="button" class="new-conversation">${icons.create} Nova conversa</button></div>`;
-    shortcuts.prepend(card);
+    navigation.after(card);
     card.querySelector(".recent-close").onclick = () => { card.open = false; card.querySelector("summary").focus(); };
     card.querySelector(".new-conversation").onclick = () => {
       if (["thinking", "streaming"].includes(state.status)) { toast("Aguarde a conclusão da resposta."); return; }

@@ -75,6 +75,7 @@ const server = http.createServer((req, res) => {
       /Padaria Aurora/,
     );
     await page.locator("#brandNameBtn").click();
+    if (await page.locator(".drawer").evaluate(el => el.inert)) await page.locator("#menuBtn").click();
     await page.locator(".recent-card summary").click();
     await page.getByRole("button", { name: "Nova conversa", exact: true }).click();
     await page.locator('[data-suggestion="campanha"]').click();
@@ -162,6 +163,7 @@ const server = http.createServer((req, res) => {
       );
     }
     await page.locator("#brandNameBtn").click();
+    if (await page.locator(".drawer").evaluate(el => el.inert)) await page.locator("#menuBtn").click();
     await page.locator(".recent-card summary").click();
     await page.getByRole("button", { name: "Nova conversa", exact: true }).click();
     await page.locator("#attachInput").setInputFiles({
@@ -193,6 +195,7 @@ const server = http.createServer((req, res) => {
       .locator("#conversationHistory [data-conversation]")
       .count();
     await page.locator("#brandNameBtn").click();
+    if (await page.locator(".drawer").evaluate(el => el.inert)) await page.locator("#menuBtn").click();
     await page.locator(".recent-card summary").click();
     await page.getByRole("button", { name: "Nova conversa", exact: true }).click();
     const initial = await page.locator("#composer").boundingBox();
@@ -229,6 +232,7 @@ const server = http.createServer((req, res) => {
       before + 1,
     );
     await page.reload();
+    if (await page.locator(".drawer").evaluate(el => el.inert)) await page.locator("#menuBtn").click();
     await page.locator(".recent-card summary").click();
     await page.locator(`[data-conversation="${conversationId}"]`).click();
     assert.match(
