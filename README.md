@@ -2,13 +2,13 @@
 
 ## Interface editorial — fluxo Ideia 2
 
-A apresentação atual usa palha `#ebe6dd`, ivory `#faf8f5` e laranja `#ff682c`, sugestões em links editoriais e o logo `divulguia.`. Digitar mantém o layout estável. No primeiro envio, o mesmo composer se expande para conter a conversa; a sidebar e o formulário permanecem no DOM. O título se reduz, o histórico ganha rolagem própria e os controles ficam no rodapé da conversa.
+A apresentação atual usa ivory `#faf8f5`, palha `#f5f0e8`, sidebar `#f3eee5` e laranja `#ff682c`, sugestões em links editoriais e o logo `divulguia.`. Digitar mantém o layout estável. No primeiro envio, o mesmo composer se expande para conter a conversa; a sidebar e o formulário permanecem no DOM. O título se reduz, o histórico ganha rolagem própria e os controles ficam no rodapé da conversa.
 
 Os estados visuais são `idle`, `focused`, `submitting`, `transforming`, `thinking`, `streaming`, `complete` e `error`. Envios simultâneos são bloqueados. Falhas preservam o pedido e oferecem nova tentativa sem duplicar a mensagem. As integrações e o processamento local de fotos continuam usando os contratos existentes. A preferência por movimento reduzido elimina a animação de transformação e a escrita progressiva.
 
 Teste atual da interface: `npm test -- <caminho-do-modulo-playwright> <executavel-chromium>`. Ele verifica continuidade dos elementos, teclado, persistência, falha e recuperação com resposta HTTP simulada, anexos, edição local, navegação, histórico, telas de 320 a 1440px e movimento reduzido. Capturas ficam em `qa-output/editorial-*.png`. Os scripts anteriores de verificação visual registram expectativas da interface antiga; use `verify-editorial.cjs` para esta versão.
 
-Publicação: pushes em `main` executam o build e enviam somente `dist/` ao GitHub Pages. O Pages oferece os recursos locais; recursos de IA online continuam exigindo o servidor e sua configuração. A referência visual anexada não estava disponível na solicitação recebida; esta implementação segue a especificação textual.
+Publicação: pushes em `main` executam o build e enviam somente `dist/` ao GitHub Pages. O Pages oferece os recursos locais; recursos de IA online continuam exigindo o servidor e sua configuração. A composição inclui os textos editoriais nas extremidades, composer inicial entre 140 e 160px e conversa ampla com mensagens do agente à esquerda (até 60%) e do usuário à direita (até 50%) no desktop.
 
 Aplicativo de marketing sem login obrigatório, com identidade palha e laranja, chat progressivo, cadastro de marca, biblioteca, histórico, favoritos, modelos, produtos, calendário editorial e calculadora de margem.
 

@@ -17,6 +17,25 @@ const server = createServer();
     assert.equal(await page.locator('.drawer-head .mark').innerText(), 'divulguia.');
     assert.equal(await page.locator('.suggestion').count(), 4);
     assert(await page.locator('#submitCreate').isDisabled());
+    const composition = await page.evaluate(() => {
+      const rect = selector => document.querySelector(selector).getBoundingClientRect();
+      return {
+        primary: getComputedStyle(document.querySelector('#main')).backgroundColor,
+        sidebar: getComputedStyle(document.querySelector('.drawer')).backgroundColor,
+        sidebarWidth: rect('.drawer').width,
+        topbarHeight: rect('.topbar').height,
+        composerHeight: rect('.conversation-shell').height,
+        composerRatio: rect('.conversation-shell').width / rect('#main').width,
+      };
+    });
+    assert.equal(composition.primary, 'rgb(250, 248, 245)');
+    assert.equal(composition.sidebar, 'rgb(243, 238, 229)');
+    assert.equal(composition.sidebarWidth, 240);
+    assert.equal(composition.topbarHeight, 64);
+    assert(composition.composerHeight >= 140 && composition.composerHeight <= 160, `Composer height: ${composition.composerHeight}`);
+    assert(composition.composerRatio >= .75 && composition.composerRatio <= .85);
+    assert.equal(await page.locator('.editorial-margin').innerText(), 'MAIS\nIDEIAS\nPARA\nUM AMANHÃ\nMAIS SEU.');
+    assert.equal(await page.locator('.editorial-footer').innerText(), 'DIVULGAR\nÉ DAR FORMA\nAO QUE IMPORTA.');
     await page.screenshot({ path: 'qa-output/editorial-desktop.png', fullPage: false });
     const original = await page.locator('#composer').boundingBox();
     await page.locator('#createInput').fill('Crie uma legenda para uma cafeteria');
@@ -46,6 +65,15 @@ const server = createServer();
     const user = await page.locator('.message.user').boundingBox();
     const agent = await page.locator('.message.assistant').boundingBox();
     assert(user.x > agent.x, 'User on right, agent on left');
+    const history = await page.locator('#messages').boundingBox();
+    const main = await page.locator('#main').boundingBox();
+    assert(history.width > main.width * .85, 'Wide conversation, not a narrow column');
+    assert(agent.width <= history.width * .65 && user.width <= history.width * .55);
+    assert(Math.abs(user.x + user.width - history.x - history.width) < 2, 'User at right edge');
+    assert(Math.abs(agent.x - history.x) < 2, 'Agent at left edge');
+    const dock = await page.locator('.conversation .conversation-shell').boundingBox();
+    const form = await page.locator('#composer').boundingBox();
+    assert(form.height < 90 && form.y + form.height <= dock.y + dock.height, 'Thin bottom composer');
     await page.locator('#createInput').fill('Deixe mais curto');
     await page.locator('#createInput').press('Enter');
     await page.waitForFunction(() => state.status === 'complete' && state.messages.length === 4);
@@ -125,11 +153,31 @@ const server = createServer();
     assert.equal(await page.locator('.message.user img').count(), 1);
     await page.reload();
     await page.locator('.generated-result img').waitFor();
+    await page.locator('.recent-card summary').click();
+    await page.locator('[data-conversation]').last().click();
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: url });
+    await page.locator('[data-action="copy"]').first().click();
+    assert((await page.evaluate(() => navigator.clipboard.readText())).length > 0, 'Copy response');
+    await page.locator('[data-action="edit"]').first().click();
+    await page.locator('.body-editor').fill('Texto revisado para a minha marca.');
+    await page.locator('#saveEdit').click();
+    assert.match(await page.locator('.response-body').first().innerText(), /Texto revisado/);
+    await page.locator('[data-action="save"]').first().click();
+    assert(await page.evaluate(() => state.favorites.size > 0), 'Save to favorites');
+    const countBefore = await page.locator('.message.user').count();
+    await page.locator('[data-action="again"]').first().click();
+    await page.waitForFunction(count => state.status === 'complete' && state.messages.filter(message => message.role === 'user').length === count + 1, countBefore);
+    await page.locator('#libBtn').click();
+    assert(await page.locator('main').innerText(), 'Library remains accessible');
     for (const width of [320, 390, 768, 1024]) {
       await mobile.setViewportSize({ width, height: 850 });
       await mobile.evaluate(() => { newConversation(); navigate('home', 'Nova conversa'); });
       assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Home has no overflow at ${width}`);
     }
+    await mobile.setViewportSize({ width: 1366, height: 768 });
+    await mobile.evaluate(() => { newConversation(); navigate('home', 'Nova conversa'); });
+    assert(await mobile.evaluate(() => document.documentElement.scrollHeight <= innerHeight), 'Desktop composition fits the viewport');
+    await mobile.screenshot({ path: 'qa-output/editorial-desktop-768.png', fullPage: true });
     assert.deepEqual(errors, []);
     console.log('Editorial flow: persistent DOM, phases, keyboard, retry, storage, responsive layout and reduced motion passed.');
   } finally { await browser.close(); server.close(); }

@@ -128,7 +128,7 @@ const editorialBusy = () => ["submitting", "transforming", "thinking", "streamin
 function enhanceEditorialHome(main) {
   const agent = main.querySelector(".agent");
   const intro = main.querySelector(".agent-intro");
-  intro.innerHTML = `<span class="hero-spark" aria-hidden="true">✦</span><span class="eyebrow">UM NOVO JEITO DE DIVULGAR</span><h1 tabindex="0">Seu agente de <br>marketing <em>pessoal</em></h1><p>Transforme uma ideia ou produto em uma divulgação completa para sua marca.</p><span class="editorial-watermark" aria-hidden="true">Ideias<br>geram<br>marcas</span><svg class="idea-connection" viewBox="0 0 100 300" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M12 2 V240 Q12 280 52 280 H94"/><circle cx="94" cy="280" r="3"/></svg>`;
+  intro.innerHTML = `<span class="hero-spark" aria-hidden="true">✦</span><span class="eyebrow">UM NOVO JEITO DE DIVULGAR</span><h1 tabindex="0">Seu agente de <br><span class="title-second-line">marketing <em>pessoal</em></span></h1><p>Transforme uma ideia ou produto em uma divulgação completa<br>para sua marca.</p><span class="editorial-watermark" aria-hidden="true">Ideias<br>geram<br>marcas</span><span class="editorial-margin">MAIS<br>IDEIAS<br>PARA<br>UM AMANHÃ<br>MAIS SEU.</span><svg class="idea-connection" viewBox="0 0 100 300" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M12 2 V240 Q12 280 52 280 H94"/><circle cx="94" cy="280" r="3"/></svg>`;
   const form = main.querySelector("#composer");
   const shell = main.querySelector(".composer-stack");
   shell.classList.add("conversation-shell");
@@ -138,25 +138,24 @@ function enhanceEditorialHome(main) {
   scroll.tabIndex = 0;
   scroll.append(main.querySelector("#messages"), main.querySelector("#thinking"));
   shell.prepend(scroll);
-  const label = document.createElement("label");
-  label.htmlFor = "createInput";
-  label.className = "composer-label";
-  label.textContent = "SUA PRÓXIMA IDEIA";
   const signature = document.createElement("span");
   signature.className = "composer-signature";
   signature.textContent = "FEITO PARA A SUA MARCA";
-  form.prepend(label, signature);
+  form.prepend(signature);
   const input = main.querySelector("#createInput");
+  input.rows = 1;
+  input.style.height = "auto";
+  if (!state.apiReady) main.querySelector(".composer-note").textContent = "Modo local  Edição de fotos sem envio  Conversa limitada, sem modelo de IA.";
   input.addEventListener("focus", syncEditorialState);
   input.addEventListener("blur", syncEditorialState);
   input.addEventListener("input", syncEditorialState);
   const quick = main.querySelector(".quick-actions");
-  const ideas = [["campanha", "Criar uma campanha completa"], ["roteiro", "Criar um roteiro de vídeo"], ["legenda", "Criar uma legenda para Instagram"], ["arte", "Criar uma arte promocional"]];
-  quick.innerHTML = ideas.map(([mode, title]) => `<button type="button" class="suggestion" data-suggestion="${mode}"><span>${title}</span><span aria-hidden="true">↗</span></button>`).join("");
+  const ideas = [["campanha", "Criar uma campanha", "completa"], ["roteiro", "Criar um roteiro", "de vídeo"], ["legenda", "Criar uma legenda", "para Instagram"], ["arte", "Criar uma arte", "promocional"]];
+  quick.innerHTML = ideas.map(([mode, first, last]) => `<button type="button" class="suggestion" data-suggestion="${mode}" data-prompt="${first} ${last}"><span>${first}<br>${last}</span></button>`).join("");
   quick.querySelectorAll("button").forEach(button => button.onclick = () => {
     if (editorialBusy()) return;
     state.mode = button.dataset.suggestion;
-    state.draft = button.firstElementChild.textContent;
+    state.draft = button.dataset.prompt;
     input.value = state.draft;
     main.querySelector("#mode").value = state.mode;
     main.querySelector("#mode").dispatchEvent(new Event("change"));
@@ -166,6 +165,10 @@ function enhanceEditorialHome(main) {
   const heading = main.querySelector(".suggestions-label");
   if (heading) heading.textContent = "COMECE POR UMA IDEIA";
   main.querySelector(".agent-footer")?.remove();
+  const footer = document.createElement("p");
+  footer.className = "editorial-footer";
+  footer.innerHTML = "DIVULGAR<br>É DAR FORMA<br>AO QUE IMPORTA.";
+  quick.after(footer);
   if (state.messages.length) agent.classList.add("conversation");
   syncEditorialState();
 }
@@ -196,19 +199,36 @@ window.prepareEditorialSubmission = async function () {
   document.querySelectorAll(".chat-error").forEach(error => error.remove());
   syncEditorialState();
   if (!agent) return;
-  await wait(motionAllowed() ? 340 : 0);
+  await wait(motionAllowed() ? 400 : 0);
   if (!agent.isConnected) return;
   if (!agent.classList.contains("conversation")) {
     state.status = "transforming";
     syncEditorialState();
     const shell = agent.querySelector(".conversation-shell");
     const before = shell.getBoundingClientRect();
+    const title = agent.querySelector("h1");
+    const titleBefore = title.getBoundingClientRect();
+    const connection = agent.querySelector(".idea-connection");
+    const lineBefore = connection.getBoundingClientRect();
     agent.classList.add("conversation");
     const after = shell.getBoundingClientRect();
-    if (motionAllowed()) shell.animate([
-      { height: `${before.height}px`, transform: `translateY(${before.top - after.top}px)` },
-      { height: `${after.height}px`, transform: "translateY(0)" },
+    if (motionAllowed()) {
+      const titleAfter = title.getBoundingClientRect();
+      title.animate([
+        { transform: `translate(${titleBefore.left - titleAfter.left}px,${titleBefore.top - titleAfter.top}px)` },
+        { transform: "translate(0,0)" },
+      ], { duration: 700, easing: "cubic-bezier(.22,1,.36,1)" });
+      const introAfter = agent.querySelector(".agent-intro").getBoundingClientRect();
+      connection.style.cssText = `left:${lineBefore.left - introAfter.left}px;top:${lineBefore.top - introAfter.top}px;width:${lineBefore.width}px;height:${lineBefore.height}px`;
+      connection.classList.add("connection-travelling");
+      const travel = connection.animate([{ opacity: 1 }, { opacity: 1, offset: .7 }, { opacity: 0 }], { duration: 800 });
+      const clearConnection = () => { connection.removeAttribute("style"); connection.classList.remove("connection-travelling"); };
+      travel.finished.then(clearConnection, clearConnection);
+      shell.animate([
+      { width: `${before.width}px`, height: `${before.height}px`, transform: `translate(${before.left - after.left}px,${before.top - after.top}px)` },
+      { width: `${after.width}px`, height: `${after.height}px`, transform: "translate(0,0)" },
     ], { duration: 800, easing: "cubic-bezier(.22,1,.36,1)" });
+    }
     // Reveal the first message while the same shell is still expanding.
     await wait(motionAllowed() ? 400 : 0);
   }
