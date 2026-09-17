@@ -1,0 +1,102 @@
+const { chromium } = require(process.argv[2] || 'playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const { createServer } = require('../../server.cjs');
+const server = createServer();
+(async () => {
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const browser = await chromium.launch({ headless: true, executablePath: process.argv[3] });
+  try {
+    fs.mkdirSync('qa-output', { recursive: true });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.evaluate(() => document.fonts.ready);
+    assert.deepEqual(await page.locator('.drawer-nav button:visible').allTextContents(), ['Identidade da marca','Configurações','Modelos','Favoritos','Calendário']);
+    assert.equal(await page.locator('.drawer #conversationHistory').count(), 0);
+    await page.screenshot({ path: 'qa-output/premium-desktop.png', fullPage: true });
+    await page.locator('#composer').hover();
+    await page.waitForTimeout(350);
+    assert.equal(await page.locator('#composer').evaluate(el => getComputedStyle(el).borderTopColor), 'rgb(255, 104, 44)');
+    await page.locator('#createInput').focus();
+    await page.mouse.move(600, 70);
+    assert.equal(await page.locator('#composer').evaluate(el => getComputedStyle(el).borderTopColor), 'rgb(255, 104, 44)');
+    await page.locator('.mode-picker summary').click();
+    assert.equal(await page.locator('[data-mode]').count(), await page.locator('#mode option').count());
+    await page.locator('[data-mode="legenda"]').click();
+    assert.equal(await page.locator('#mode').inputValue(), 'legenda');
+    assert.equal(await page.locator('[data-mode="legenda"]').getAttribute('aria-pressed'), 'true');
+    const initial = await page.locator('#composer').boundingBox();
+    await page.locator('#createInput').fill('Crie uma legenda para café');
+    await page.waitForTimeout(400);
+    const compact = await page.locator('#composer').boundingBox();
+    assert(compact.y > initial.y, 'Typing moves composer down');
+    assert(compact.height < initial.height, 'Typing compacts composer');
+    await page.locator('#createInput').press('Shift+Enter');
+    assert.match(await page.locator('#createInput').inputValue(), /\n/);
+    await page.locator('#createInput').press('Enter');
+    await page.waitForFunction(() => state.status === 'complete');
+    assert.equal(await page.locator('.message.user').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 104, 44)');
+    assert.equal(await page.locator('.message.assistant').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(235, 230, 221)');
+    assert(await page.locator('.response-body').innerText());
+    await page.screenshot({ path: 'qa-output/premium-conversation.png', fullPage: true, animations: 'disabled' });
+    await page.locator('.recent-card summary').click();
+    assert.equal(await page.locator('[data-conversation]:visible').count(), 1);
+    await page.locator('.recent-close').click();
+    assert.equal(await page.locator('.recent-card').getAttribute('open'), null);
+    await page.locator('.recent-card summary').click();
+    await page.locator('.topbar').click({ position: { x: 300, y: 30 } });
+    assert.equal(await page.locator('.recent-card').getAttribute('open'), null);
+    await page.locator('.recent-card summary').click();
+    await page.getByRole('button', { name: 'Nova conversa', exact: true }).click();
+    assert.equal(await page.locator('.message').count(), 0);
+    await page.locator('.recent-card summary').click();
+    await page.locator('[data-conversation]').click();
+    assert.equal(await page.locator('.message.user').count(), 1);
+    await page.reload();
+    assert.equal(await page.locator('.message.user').count(), 1);
+    await page.locator('#menuBtn').click();
+    await page.waitForTimeout(300);
+    assert.equal(Math.round((await page.locator('.drawer').boundingBox()).width), 70);
+    await page.locator('#menuBtn').click();
+    for (const label of ['Identidade da marca','Configurações','Modelos','Favoritos','Calendário']) {
+      await page.getByRole('button', { name: label, exact: true }).click();
+      assert(await page.locator('main').innerText());
+    }
+    await page.evaluate(() => navigate('calculadora', 'Calculadora'));
+    await page.locator('#cost').fill('50');
+    await page.locator('#price').fill('100');
+    await page.locator('#discount').fill('10');
+    assert.match(await page.locator('#calcResult').innerText(), /44.4%/);
+    await page.locator('#brandNameBtn').click();
+    for (const width of [320, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 850 });
+      await page.waitForTimeout(350);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `overflow at ${width}`);
+      await page.locator('.recent-card summary').click();
+      const panel = await page.locator('.recent-panel').boundingBox();
+      assert(panel.x >= 0 && panel.x + panel.width <= width, `history at ${width}`);
+      await page.keyboard.press('Escape');
+      await page.locator('.mode-picker summary').click();
+      const options = await page.locator('.mode-options').boundingBox();
+      assert(options.x >= 0 && options.x + options.width <= width, `selector at ${width}`);
+      await page.keyboard.press('Escape');
+      if (width < 760) {
+        await page.locator('#menuBtn').click();
+        assert.equal(await page.locator('.drawer').evaluate(el => el.inert), false);
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('.drawer').evaluate(el => el.inert), true);
+        await page.screenshot({ path: `qa-output/premium-mobile-${width}.png`, fullPage: true });
+      }
+    }
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.locator('#createInput').fill('Deixe mais curto');
+    await page.locator('#createInput').press('Enter');
+    await page.waitForFunction(() => state.status === 'complete' && state.messages.length === 4);
+    assert.equal(await page.evaluate(() => document.getAnimations().length), 0);
+    assert.deepEqual(errors, []);
+    console.log('PASS: premium layout, keyboard, conversation, persistence, routes, history, selector, responsive viewports, reduced motion, console.');
+  } finally { await browser.close(); server.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; server.close(); });

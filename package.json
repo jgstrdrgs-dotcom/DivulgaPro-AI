@@ -2,7 +2,11 @@
   "name": "divulguiar",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
+    "start": "node server.cjs",
     "build": "node divulgaia/scripts/build.cjs",
     "test": "node divulgaia/scripts/verify-agent.cjs"
   }

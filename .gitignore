@@ -1,3 +1,7 @@
 dist/
 node_modules/
 qa-output/
+.env
+.env.*
+!.env.example
+Divulguiar-atualizado.zip

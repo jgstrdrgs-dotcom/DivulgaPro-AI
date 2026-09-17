@@ -7,8 +7,10 @@ Object.assign(state, {
   draft: "",
   mode: "",
   collapsed: false,
-  active: "Novo",
+  active: "Nova conversa",
   products: [],
+  conversations: [],
+  conversationId: null,
 });
 try {
   const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
@@ -18,12 +20,17 @@ try {
     state.favorites = new Set(saved.favorites || []);
     state.products = saved.products || [];
     state.messages = saved.messages || [];
+    state.conversations = Array.isArray(saved.conversations)
+      ? saved.conversations
+      : [];
+    state.conversationId = saved.conversationId || null;
     state.nextId = Math.max(0, ...state.library.map((e) => e.id)) + 1;
   }
 } catch {
   /* Recover safely from unavailable storage or malformed JSON. */
 }
 function persist() {
+  rememberConversation();
   try {
     localStorage.setItem(
       storageKey,
@@ -33,6 +40,8 @@ function persist() {
         favorites: [...state.favorites],
         messages: state.messages,
         products: state.products,
+        conversations: state.conversations,
+        conversationId: state.conversationId,
       }),
     );
     return true;
@@ -42,6 +51,67 @@ function persist() {
     );
     return false;
   }
+}
+function rememberConversation() {
+  if (!state.messages.length) return;
+  state.conversationId ||= crypto.randomUUID();
+  const previous = state.conversations.find(
+    (c) => c.id === state.conversationId,
+  );
+  const conversation = {
+    id: state.conversationId,
+    title:
+      state.messages.find((m) => m.role === "user")?.text.slice(0, 80) ||
+      "Conversa",
+    messages: structuredClone(state.messages),
+    mode: state.mode,
+    draft: state.draft,
+    updated: new Date().toISOString(),
+  };
+  if (previous) Object.assign(previous, conversation);
+  else state.conversations.unshift(conversation);
+}
+function newConversation() {
+  persist();
+  state.conversationId = null;
+  state.messages = [];
+  state.pendingImage = null;
+  state.draft = "";
+  state.status = "idle";
+  persist();
+}
+function renderConversationHistory() {
+  let section = document.querySelector("#conversationHistory");
+  if (!section) {
+    section = document.createElement("section");
+    section.id = "conversationHistory";
+    section.className = "conversation-history";
+    section.setAttribute("aria-label", "Histórico de conversas");
+    document.querySelector(".drawer-nav").after(section);
+  }
+  section.innerHTML = `<h2>Conversas recentes</h2><div class="conversation-history-list">${state.conversations.length ? state.conversations.map((c) => `<button class="drawer-item ${c.id === state.conversationId ? "active" : ""}" data-conversation="${escapeHtml(c.id)}" title="${escapeHtml(c.title)}" aria-label="Retomar: ${escapeHtml(c.title)}" ${c.id === state.conversationId ? 'aria-current="true"' : ""}><span class="ic">${icons.history}</span><span>${escapeHtml(c.title)}</span></button>`).join("") : "<p>Suas conversas aparecerão aqui.</p>"}</div>`;
+  section.querySelectorAll("[data-conversation]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        if (["thinking", "streaming"].includes(state.status)) {
+          toast("Aguarde a conclusão da resposta.");
+          return;
+        }
+        persist();
+        const conversation = state.conversations.find(
+          (c) => c.id === button.dataset.conversation,
+        );
+        state.conversationId = conversation.id;
+        state.messages = structuredClone(conversation.messages);
+        state.mode = conversation.mode || "";
+        state.draft = conversation.draft || "";
+        state.pendingImage = null;
+        state.status = "complete";
+        persist();
+        navigate("home", "Conversa");
+        document.querySelector("#createInput")?.focus();
+      }),
+  );
 }
 const suggestions = [
   [
@@ -85,7 +155,7 @@ NAV.splice(
   0,
   NAV.length,
   ...[
-    ["home", "Novo", "create"],
+    ["home", "Nova conversa", "create"],
     ["home", "Criar campanha", "campaign", "campanha"],
     ["home", "Artes", "template", "arte"],
     ["home", "Stories", "template", "stories"],
@@ -168,7 +238,7 @@ render = function () {
             toast("Aguarde a conclusão da resposta.");
             return;
           }
-          state.messages = [];
+          newConversation();
           state.mode = n.mode || "";
           state.draft = n.mode
             ? suggestions.find((s) => s[0] === n.mode)?.[1] ||
@@ -180,6 +250,7 @@ render = function () {
       }),
   );
   renderRoute();
+  renderConversationHistory();
   setDrawer(state.drawerOpen);
 };
 const baseRenderRoute = renderRoute;
@@ -244,6 +315,23 @@ async function readImage(file) {
 }
 function bindComposer() {
   const input = document.querySelector("#createInput");
+  input.rows = state.messages.length ? 1 : 2;
+  const composerElement = document.querySelector("#composer");
+  composerElement.onpointermove = (event) => {
+    if (event.pointerType === "touch") return;
+    const rect = composerElement.getBoundingClientRect();
+    composerElement.style.setProperty(
+      "--pointer-x",
+      `${event.clientX - rect.left}px`,
+    );
+    composerElement.style.setProperty(
+      "--pointer-y",
+      `${event.clientY - rect.top}px`,
+    );
+    composerElement.classList.add("pointer-glow");
+  };
+  composerElement.onpointerleave = () =>
+    composerElement.classList.remove("pointer-glow");
   const resize = () => {
     input.style.height = "auto";
     input.style.height = Math.min(input.scrollHeight, 220) + "px";
@@ -280,6 +368,8 @@ function bindComposer() {
     };
 }
 generateContent = function (text, hasImage, forcedType) {
+  if (/m[uú]sica|trilha|[aá]udio/.test(text.toLowerCase()))
+    return musicResponse(text);
   const brand = state.brand.name || state.brand.company || "sua marca";
   const type = forcedType || inferType(text);
   const previous = state.messages
@@ -339,13 +429,67 @@ function drawMessages() {
     .join("");
   bindActions(slot);
 }
+const musicSources = [
+  [
+    "TikTok · conferir tendências atuais",
+    "https://ads.tiktok.com/creative/creativeCenter/trends",
+  ],
+  [
+    "TikTok · catálogo musical comercial",
+    "https://ads.tiktok.com/business/creativecenter/music/pc/en",
+  ],
+];
+function musicResponse(prompt) {
+  const subject = `${prompt} ${state.brand.segment || ""}`.toLowerCase();
+  const fashion = /moda|roupa|look|beleza|sal[aã]o/.test(subject);
+  const food = /caf[eé]|comida|padaria|p[aã]o|restaurante|doce/.test(subject);
+  const picks = [
+    {
+      name: "Pretty (Fashion Week Edition) — MEYY",
+      idea: "Transição de look ou revelação do produto: prepare o movimento nos primeiros 2 segundos e revele o resultado na batida. Use 3 tomadas curtas.",
+      fit: fashion ? 3 : 0,
+    },
+    {
+      name: "Aromatic — goosetaf & Timothy Infinite",
+      idea: "Bastidores com clima tranquilo: grave detalhes do preparo, uma tomada de textura e a entrega. Preserve o som ambiente e mantenha a trilha baixa.",
+      fit: food ? 3 : 0,
+    },
+    {
+      name: "Oi — Planta Industrial & aka the darknight & Saso",
+      idea: "Apresentação com energia: comece com o produto pronto, faça 3 cortes mostrando detalhes e termine com uma chamada curta para conversar.",
+      fit: 1,
+    },
+  ].sort((a, b) => b.fit - a.fit);
+  return {
+    id: state.nextId++,
+    type: "roteiro",
+    title: "Trilhas e ideias para seu vídeo",
+    prompt,
+    date: new Date().toISOString(),
+    content:
+      `Músicas para testar no seu conteúdo\nPara ${state.brand.name || state.brand.company || "sua marca"}: ${prompt}\nEstas faixas aparecem em registros públicos do catálogo do TikTok. São referências criativas, não um ranking de virais de hoje. A consulta de 16/09/2026 não disponibilizou um ranking atual verificável.\n\n` +
+      picks.map((p, i) => `${i + 1}. ${p.name}\n${p.idea}`).join("\n\n") +
+      "\n\nComo escolher a tendência de agora\nAbra as tendências do TikTok e confira a região e o período disponíveis. Compare áudios usados recentemente por criadores do seu segmento. No Instagram, confira a indicação de tendência na seleção de áudio do Reels, quando disponível. Escolha uma faixa que combine com o ritmo do vídeo e permita ouvir a fala.\n\nAntes de publicar\nConfira a disponibilidade e a permissão de uso comercial na sua conta e plataforma. Uma faixa do TikTok não implica autorização de uso no Instagram.\n\nFontes para consultar\n" +
+      musicSources.map(([label, url]) => `${label}\n${url}`).join("\n"),
+  };
+}
+function responseText(text) {
+  let html = escapeHtml(text);
+  for (const [label, url] of musicSources) {
+    html = html.replaceAll(
+      escapeHtml(url),
+      `<a href="${url}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`,
+    );
+  }
+  return html;
+}
 function formatResponse(text) {
   return text
     .split("\n\n")
     .filter(Boolean)
     .map((s) => {
       const [title, ...body] = s.split("\n");
-      return `<section class="response-section"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(body.join("\n"))}</p></section>`;
+      return `<section class="response-section"><h3>${escapeHtml(title)}</h3><p>${responseText(body.join("\n"))}</p></section>`;
     })
     .join("");
 }
@@ -408,18 +552,24 @@ async function submitRequest(override) {
       const nearBottom =
         innerHeight + scrollY >= document.documentElement.scrollHeight - 240;
       // Preserve existing sections so their entrance animation runs only once.
-      message.visible.split("\n\n").filter(Boolean).forEach((part, index) => {
-        let section = body.children[index];
-        if (!section) {
-          section = document.createElement("section");
-          section.className = "response-section";
-          section.append(document.createElement("h3"), document.createElement("p"));
-          body.append(section);
-        }
-        const [heading, ...lines] = part.split("\n");
-        section.firstElementChild.textContent = heading;
-        section.lastElementChild.textContent = lines.join("\n");
-      });
+      message.visible
+        .split("\n\n")
+        .filter(Boolean)
+        .forEach((part, index) => {
+          let section = body.children[index];
+          if (!section) {
+            section = document.createElement("section");
+            section.className = "response-section";
+            section.append(
+              document.createElement("h3"),
+              document.createElement("p"),
+            );
+            body.append(section);
+          }
+          const [heading, ...lines] = part.split("\n");
+          section.firstElementChild.textContent = heading;
+          section.lastElementChild.textContent = lines.join("\n");
+        });
       if (nearBottom)
         document
           .querySelector("#thinking")
@@ -432,6 +582,7 @@ async function submitRequest(override) {
   state.library.unshift(entry);
   state.status = "complete";
   persist();
+  renderConversationHistory();
   if (state.route === "home") {
     drawMessages();
     document.querySelector("#thinking").hidden = true;
@@ -500,6 +651,7 @@ renderResultado = function (main) {
   main.innerHTML = `<div class="page"><article class="result-card"><div class="eyebrow">${catLabel(e.type)}</div><h2>${escapeHtml(e.title)}</h2><div class="response-body">${formatResponse(e.content)}</div>${actions(e.id)}<button class="btn-outline" id="continueChat">Continuar conversa</button></article></div>`;
   bindActions(main);
   main.querySelector("#continueChat").onclick = () => {
+    newConversation();
     state.messages = [
       { role: "user", text: e.prompt },
       { role: "assistant", entry: e, visible: e.content, complete: true },
@@ -585,7 +737,7 @@ function renderProducts(main) {
     (b) =>
       (b.onclick = () => {
         const p = state.products[+b.dataset.product];
-        state.messages = [];
+        newConversation();
         state.draft = `Crie uma campanha para ${p.name}, preço R$ ${p.price}.`;
         state.mode = "campanha";
         navigate("home", "Criar campanha");
@@ -616,6 +768,8 @@ renderConfiguracoes = function (main) {
       return;
     state.library = [];
     state.messages = [];
+    state.conversations = [];
+    state.conversationId = null;
     state.favorites.clear();
     persist();
     render();
@@ -646,4 +800,5 @@ document.addEventListener("keydown", (e) => {
   }
 });
 addEventListener("resize", () => setDrawer(state.drawerOpen));
-render();
+rememberConversation();
+// The conversational layer initializes the application after registering handlers.
