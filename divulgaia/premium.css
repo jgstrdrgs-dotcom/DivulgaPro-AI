@@ -369,3 +369,43 @@ body:has(.agent.conversation) { overflow: hidden; }
   .suggestions-label { margin-top: 22px; margin-bottom: 18px; }
   .editorial-footer { margin-top: 18px; }
 }
+
+/* Composer finish only: the SVG follows its actual size, including attachments. */
+.agent:not(.conversation) .conversation-shell {
+  isolation: isolate;
+  --composer-stroke: rgba(32,32,32,.14);
+  background: transparent;
+  border-color: transparent;
+  border-radius: 14px;
+  box-shadow: none;
+}
+.composer-outline { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; overflow: visible; filter: drop-shadow(0 5px 10px #20202005); }
+.outline-surface { fill: #fff; stroke: var(--composer-stroke); stroke-width: 1px; transition: stroke 300ms var(--premium-ease); }
+.outline-progress { fill: none; stroke: #ff682c; stroke-width: 1px; stroke-dasharray: .14 .86; opacity: 0; }
+.agent:not(.conversation) .conversation-shell:hover { --composer-stroke: rgba(255,104,44,.55); }
+.agent:not(.conversation) .conversation-shell:focus-within { --composer-stroke: #ff682c; box-shadow: none; }
+[data-phase=submitting] .outline-progress, [data-phase=transforming] .outline-progress { opacity: 1; animation: composer-outline-travel 800ms var(--premium-ease) infinite; }
+@keyframes composer-outline-travel { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.conversation .composer-outline { display: none; }
+.conversation[data-phase=transforming] .composer-outline { display: block; z-index: 0; }
+.conversation[data-phase=transforming] .outline-surface { fill: none; stroke: transparent; }
+.agent:not(.conversation) .composer { padding-bottom: 8px; }
+.agent:not(.conversation) .composer textarea { min-height: 50px; color: #202020; transition: color 200ms var(--premium-ease); }
+.agent #attachBtn { width: 42px; height: 42px; min-width: 42px; background: #ff682c; color: #202020; border-radius: 50%; box-shadow: 0 2px 5px #20202006; transition: transform 220ms var(--premium-ease), box-shadow 220ms var(--premium-ease); }
+.agent #attachBtn:hover { background: #ff682c; transform: translateY(-1px); box-shadow: 0 4px 9px #20202012; }
+#attachBtn svg { transition: transform 220ms var(--premium-ease); }
+#attachBtn:hover svg { transform: translateY(-1px); }
+.agent .photo-mode { align-self: center; color: #202020; white-space: nowrap; }
+.agent .mode-picker { border-left: 0; padding-left: 16px; }
+.agent .mode-picker::before { content: ''; position: absolute; left: 0; top: 50%; height: 30px; width: 1px; transform: translateY(-50%); background: rgba(32,32,32,.10); }
+.agent .mode-picker summary { min-width: 146px; max-width: none; background: #fff; border-color: rgba(32,32,32,.14); color: #202020; }
+.agent .send { width: 110px; height: 42px; min-height: 42px; flex-shrink: 0; justify-content: center; background: #ff682c; color: #202020; }
+.agent .send:not(:disabled) { opacity: 1; }
+.agent .composer-note { color: rgba(32,32,32,.55); }
+@media (max-width: 760px) {
+  .agent .composer-tools { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 8px; }
+  .agent .photo-mode { justify-self: start; }
+  .agent .mode-picker { grid-column: 1 / 3; grid-row: 2; width: fit-content; margin: 0; padding-left: 16px; }
+  .agent .send { grid-column: 3; grid-row: 2; margin-left: 0; }
+  .agent .native-mode { position: absolute; }
+}

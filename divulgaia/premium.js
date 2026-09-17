@@ -125,6 +125,28 @@ drawMessages = function () {
 };
 
 const editorialBusy = () => ["submitting", "transforming", "thinking", "streaming"].includes(state.status);
+let composerContourObserver;
+function addComposerContour(shell) {
+  composerContourObserver?.disconnect();
+  const ns = "http://www.w3.org/2000/svg";
+  const outline = document.createElementNS(ns, "svg");
+  outline.classList.add("composer-outline");
+  outline.setAttribute("aria-hidden", "true");
+  outline.innerHTML = '<path class="outline-surface"/><path class="outline-progress" pathLength="1"/>';
+  shell.prepend(outline);
+  const resize = () => {
+    if (!shell.isConnected) { composerContourObserver.disconnect(); return; }
+    const { width: w, height: h } = outline.getBoundingClientRect();
+    if (!w || !h) return;
+    const c = w / 2, half = Math.min(76, w * .17), depth = 11;
+    const path = `M14 .5 H${c-half} C${c-half*.55} .5 ${c-half*.6} ${depth} ${c} ${depth} C${c+half*.6} ${depth} ${c+half*.55} .5 ${c+half} .5 H${w-14} Q${w-.5} .5 ${w-.5} 14 V${h-14} Q${w-.5} ${h-.5} ${w-14} ${h-.5} H14 Q.5 ${h-.5} .5 ${h-14} V14 Q.5 .5 14 .5 Z`;
+    outline.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    outline.querySelectorAll("path").forEach(element => element.setAttribute("d", path));
+  };
+  composerContourObserver = new ResizeObserver(resize);
+  composerContourObserver.observe(shell);
+  resize();
+}
 function enhanceEditorialHome(main) {
   const agent = main.querySelector(".agent");
   const intro = main.querySelector(".agent-intro");
@@ -132,6 +154,7 @@ function enhanceEditorialHome(main) {
   const form = main.querySelector("#composer");
   const shell = main.querySelector(".composer-stack");
   shell.classList.add("conversation-shell");
+  addComposerContour(shell);
   const scroll = document.createElement("div");
   scroll.className = "conversation-scroll";
   scroll.setAttribute("aria-label", "Histórico da conversa");
