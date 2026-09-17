@@ -21,9 +21,10 @@ const server = createServer();
     assert.deepEqual(await page.locator('.drawer-nav button:visible').allTextContents(), ['Identidade da marca','Configurações','Modelos','Favoritos','Calendário']);
     assert.equal(await page.locator('.drawer #conversationHistory').count(), 1);
     assert.equal(await page.locator('main .recent-card').count(), 0);
-    for (const selector of ['body', '#main', '.drawer', '.suggestion']) {
+    for (const selector of ['body', '#main', '.suggestion']) {
       assert.equal(await page.locator(selector).first().evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(250, 248, 245)', `straw palette: ${selector}`);
     }
+    assert.equal(await page.locator('.drawer').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(245, 242, 236)');
     const title = page.locator('.agent h1');
     assert.equal(await title.evaluate(el => getComputedStyle(el, '::after').content), 'none');
     await title.hover();

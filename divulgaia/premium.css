@@ -12,7 +12,7 @@
 body, #app, #main { background: #faf8f5; color: #202020; }
 .page-pointer-glow { display: none; }
 .topbar { background: #faf8f5ed; border-color: #20202012; backdrop-filter: blur(12px); }
-.drawer { background: #faf8f5; border-right: 1px solid #20202012; }
+.drawer { background: #f5f2ec; border-right: 1px solid #20202012; }
 .drawer-head { border-bottom: 1px solid #e8e8e8; margin-bottom: 24px; }
 .drawer-item { min-height: 44px; font-size: 12px; border-radius: 6px; }
 .drawer-item[hidden] { display: none; }
