@@ -21,7 +21,7 @@ const server = createServer();
     assert.deepEqual(await page.locator('.drawer-nav button:visible').allTextContents(), ['Identidade da marca','Configurações','Modelos','Favoritos','Calendário']);
     assert.equal(await page.locator('.drawer #conversationHistory').count(), 1);
     assert.equal(await page.locator('main .recent-card').count(), 0);
-    for (const selector of ['body', '#main', '.drawer', '.suggestion', '.recent-card']) {
+    for (const selector of ['body', '#main', '.drawer', '.suggestion']) {
       assert.equal(await page.locator(selector).first().evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(250, 248, 245)', `straw palette: ${selector}`);
     }
     const title = page.locator('.agent h1');
@@ -50,8 +50,10 @@ const server = createServer();
     assert.match(await page.locator('#createInput').inputValue(), /\n/);
     await page.locator('#createInput').press('Enter');
     await page.waitForFunction(() => state.status === 'complete');
-    assert.equal(await page.locator('.message.user').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 104, 44)');
-    assert.equal(await page.locator('.message.assistant').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(250, 248, 245)');
+    for (const selector of ['.message.user', '.message.assistant', '#messages', '.recent-card']) {
+      const appearance = await page.locator(selector).evaluate(el => { const s = getComputedStyle(el); return { background: s.backgroundColor, border: s.borderTopWidth, shadow: s.boxShadow }; });
+      assert.deepEqual(appearance, { background: 'rgba(0, 0, 0, 0)', border: '0px', shadow: 'none' }, selector + ' has no enclosing box');
+    }
     assert(await page.locator('.response-body').innerText());
     const answer = await page.locator('.message.assistant').boundingBox();
     const center = await page.locator('#messages').boundingBox();
@@ -94,7 +96,11 @@ const server = createServer();
       const mainBox = await page.locator('#main').boundingBox();
       const conversationBox = await page.locator('#messages').boundingBox();
       const composerBox = await page.locator('#composer').boundingBox();
-      assert(Math.abs(conversationBox.x + conversationBox.width / 2 - mainBox.x - mainBox.width / 2) < 2, `centered conversation at ${width}`);
+      const agentMessage = await page.locator('.message.assistant').first().boundingBox();
+      const userMessage = await page.locator('.message.user').first().boundingBox();
+      assert(Math.abs(agentMessage.x - conversationBox.x) < 2, 'Agent text at left edge');
+      assert(Math.abs(userMessage.x + userMessage.width - conversationBox.x - conversationBox.width) < 2, 'User text at right edge');
+      assert.equal(await page.locator('.message.user').first().evaluate(el => getComputedStyle(el).textAlign), 'right');
       assert(Math.abs(composerBox.x + composerBox.width / 2 - mainBox.x - mainBox.width / 2) < 2, `centered composer at ${width}`);
       await openRecent();
       const panel = await page.locator('.recent-panel').boundingBox();

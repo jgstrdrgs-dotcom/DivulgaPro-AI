@@ -96,14 +96,14 @@ body, #app, #main { background: #faf8f5; color: #202020; }
 .conversation h1 em { display: inline; }
 .conversation.first-conversation { animation: none; }
 #messages { min-width: 0; }
-.conversation #messages { width: 100%; max-width: 820px; margin: 0 auto 20px; padding: 8px 20px; background: #fff; border: 1px solid #20202012; border-radius: 14px; box-shadow: 0 4px 18px #20202004; }
+.conversation #messages { width: 100%; max-width: none; margin: 0 0 20px; padding: 8px 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
 .quick-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; width: 100%; max-width: 820px; margin: 0 auto; position: relative; z-index: 20; }
 .writing .quick-actions, .conversation .quick-actions { grid-template-columns: minmax(0,260px); margin-bottom: 20px; order: 1; }
 .writing #messages, .conversation #messages { order: 2; }
 .writing .thinking, .conversation .thinking { order: 3; width: 100%; max-width: 820px; margin: 0 auto; }
 .writing .writing-dock, .conversation .writing-dock { order: 4; }
-.message.user { width: fit-content; max-width: 82%; margin: 20px 0 24px auto; padding: 12px 20px; background: #ff682c; color: #202020; border: 1px solid #ff682c; border-radius: 22px 22px 6px 22px; box-shadow: 0 4px 14px #20202008; }
-.message.assistant { width: fit-content; max-width: 88%; text-align: left; color: #202020; background: #faf8f5; border: 1px solid #e3ddd2; padding: 24px; border-radius: 12px; margin: 20px auto 24px 0; box-shadow: 0 4px 18px #20202004; }
+.message.user { width: fit-content; max-width: 72%; margin: 24px 0 36px auto; padding: 0; text-align: right; background: transparent; color: #202020; border: 0; border-radius: 0; box-shadow: none; }
+.message.assistant { width: fit-content; max-width: 82%; text-align: left; color: #202020; background: transparent; border: 0; padding: 0; border-radius: 0; margin: 24px auto 36px 0; box-shadow: none; }
 .chat-paragraph { line-height: 1.8; }
 .chat-paragraph:last-child { margin-bottom: 0; }
 .result-actions { margin-top: 20px; padding-top: 14px; border-top: 1px solid #20202012; }
@@ -126,8 +126,8 @@ body, #app, #main { background: #faf8f5; color: #202020; }
   .composer { padding: 16px; }
   .recent-panel { width: min(340px,calc(100vw - 36px)); }
   .conversation h1 { font-size: 21px; }
-  .message.assistant { max-width: 94%; padding: 16px; }
-  .conversation #messages { padding: 4px 12px; }
+  .message.assistant { max-width: 94%; padding: 0; }
+  .conversation #messages { padding: 4px 0; }
   .writing .quick-actions, .conversation .quick-actions { grid-template-columns: minmax(0,1fr); }
   .message.user { max-width: 92%; }
   .mode-options { left: auto; right: 0; }
@@ -156,9 +156,14 @@ body, #app, #main { background: #faf8f5; color: #202020; }
 /* Recent conversations live in the collapsible sidebar, outside the writing area. */
 .quick-actions:empty { display: none; }
 .drawer-nav { flex: 0 0 auto; }
-.drawer .recent-card { margin: 24px 0 16px; flex: 0 1 auto; min-height: 0; overflow-y: auto; }
-.drawer .recent-card > summary { min-height: 70px; padding: 14px 12px; }
-.drawer .recent-panel { position: static; width: 100%; border: 0; border-top: 1px solid #ff682c40; box-shadow: none; border-radius: 0; padding: 10px; }
+.drawer .recent-card { margin: 6px 0 16px; flex: 0 1 auto; min-height: 0; overflow-y: auto; border: 0; border-radius: 6px; background: transparent; box-shadow: none; }
+.drawer .recent-card > summary { min-height: 60px; padding: 10px 12px; gap: 12px; font-size: 12px; border-radius: 6px; transition: background-color 220ms var(--premium-ease); }
+.drawer .recent-card > summary:hover { background: #ff682c08; }
+.drawer .recent-card > summary > svg { color: #72706b; }
+.drawer .recent-card[open] > summary > svg { color: #ff682c; }
+.drawer .new-conversation { background: transparent; border: 0; }
+.drawer .new-conversation:hover { background: #ff682c08; }
+.drawer .recent-panel { position: static; width: 100%; border: 0; box-shadow: none; border-radius: 0; padding: 10px; }
 .drawer .conversation-history-list { max-height: min(260px,28dvh); }
 .drawer .recent-heading strong { font-size: 11px; }
 .drawer .recent-card .drawer-item { padding: 10px 6px; }
@@ -166,7 +171,7 @@ body, #app, #main { background: #faf8f5; color: #202020; }
   .collapsed .drawer .recent-card { border-color: transparent; overflow: visible; }
   .collapsed .drawer .recent-card > summary { padding: 12px; min-height: 44px; }
   .collapsed .drawer .recent-card > summary > span { display: none; }
-  .collapsed .drawer .recent-panel { position: absolute; top: 0; left: calc(100% + 14px); width: 280px; border: 1px solid #ff682c80; border-radius: 12px; box-shadow: 0 8px 28px #20202012; }
+  .collapsed .drawer .recent-panel { position: absolute; top: 0; left: calc(100% + 14px); width: 280px; border: 0; border-radius: 6px; box-shadow: 0 8px 28px #20202012; }
 }
 @media (max-height: 640px) {
   .drawer { overflow-y: auto; }
