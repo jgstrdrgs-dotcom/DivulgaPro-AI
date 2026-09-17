@@ -50,9 +50,14 @@ const server = createServer();
     assert.match(await page.locator('#createInput').inputValue(), /\n/);
     await page.locator('#createInput').press('Enter');
     await page.waitForFunction(() => state.status === 'complete');
-    for (const selector of ['.message.user', '.message.assistant', '#messages', '.recent-card']) {
+    for (const selector of ['#messages', '.recent-card']) {
       const appearance = await page.locator(selector).evaluate(el => { const s = getComputedStyle(el); return { background: s.backgroundColor, border: s.borderTopWidth, shadow: s.boxShadow }; });
       assert.deepEqual(appearance, { background: 'rgba(0, 0, 0, 0)', border: '0px', shadow: 'none' }, selector + ' has no enclosing box');
+    }
+    assert.equal(await page.locator('.message.user').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 104, 44)');
+    assert.equal(await page.locator('.message.assistant').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(245, 242, 236)');
+    for (const selector of ['.message.user', '.message.assistant']) {
+      assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).borderRadius), '26px');
     }
     assert(await page.locator('.response-body').innerText());
     const answer = await page.locator('.message.assistant').boundingBox();
@@ -96,6 +101,8 @@ const server = createServer();
       const mainBox = await page.locator('#main').boundingBox();
       const conversationBox = await page.locator('#messages').boundingBox();
       const composerBox = await page.locator('#composer').boundingBox();
+      assert(conversationBox.x - mainBox.x <= 21, 'Conversation close to left edge');
+      assert(mainBox.x + mainBox.width - conversationBox.x - conversationBox.width <= 21, 'Conversation close to right edge');
       const agentMessage = await page.locator('.message.assistant').first().boundingBox();
       const userMessage = await page.locator('.message.user').first().boundingBox();
       assert(Math.abs(agentMessage.x - conversationBox.x) < 2, 'Agent text at left edge');
