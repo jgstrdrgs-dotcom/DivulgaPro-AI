@@ -1,2 +1,859 @@
-<!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=divulgaia/index.html"><title>Divulguiar</title></head><body style="background:#faf8f5;font-family:system-ui"><a href="divulgaia/index.html">Abrir Divulguiar</a></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Divulguiar — Crie a divulgação da sua marca</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff682c'/%3E%3Ctext x='9' y='24' font-family='sans-serif' font-size='24' fill='%2327251e'%3Ed%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --straw:#F4EFE6;
+  --straw-2:#F7F3EC;
+  --white:#FFFFFF;
+  --black:#111111;
+  --black-2:#202020;
+  --orange:#FF682C;
+  --orange-burnt:#C85B2D;
+  --graphite:#202020;
+  --border:#D8D1C5;
+  --bronze:#816729;
+  --slate:#8a8377;
+
+  --serif:'Playfair Display', Georgia, 'Times New Roman', serif;
+  --sans:'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --rail-w:280px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:var(--sans);
+  color:var(--graphite);
+  background:var(--straw);
+  -webkit-font-smoothing:antialiased;
+}
+button,input{font-family:inherit;}
+::selection{background:var(--orange); color:#fff;}
+:focus-visible{outline:2px solid var(--orange); outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms !important; transition-duration:.001ms !important;}}
+.hidden{display:none !important;}
+
+/* subtle paper texture on the straw background */
+body::before{
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:radial-gradient(rgba(129,103,41,.05) 1px, transparent 1px);
+  background-size:3px 3px;
+  opacity:.5;
+}
+
+/* ============================= HEADER ============================= */
+.topbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px;
+  padding:18px 28px;
+  background:rgba(244,239,230,.86);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--border);
+}
+.topbar-left{display:flex; align-items:center; gap:12px; min-width:0; flex:1;}
+.menu-btn{
+  width:30px; height:30px; flex:none; border:none; background:transparent; border-radius:6px;
+  display:flex; align-items:center; justify-content:center; color:var(--graphite); cursor:pointer;
+  transition:background-color .2s var(--ease), color .2s var(--ease);
+}
+.menu-btn:hover{background:rgba(200,91,45,.10); color:var(--orange-burnt);}
+.menu-btn svg{width:17px; height:17px;}
+.brand-name{
+  font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--black-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  cursor:pointer; padding:4px 2px; position:relative;
+}
+.brand-name::after{
+  content:''; position:absolute; left:2px; right:2px; bottom:0; height:1px;
+  background:var(--orange); transform:scaleX(0); transform-origin:left; transition:transform .25s var(--ease);
+}
+.brand-name:hover::after{transform:scaleX(1);}
+
+.welcome-pill{
+  flex:none;
+  border:none; cursor:pointer;
+  background:var(--orange);
+  color:#fff;
+  font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  padding:9px 22px;
+  border-radius:999px;
+  white-space:nowrap; max-width:60vw; overflow:hidden; text-overflow:ellipsis;
+  transition:background-color .22s var(--ease), transform .22s var(--ease), box-shadow .22s var(--ease);
+  box-shadow:0 1px 0 rgba(0,0,0,.02);
+}
+.welcome-pill:hover{background:var(--orange-burnt); transform:translateY(-1px); box-shadow:0 6px 16px rgba(200,91,45,.28);}
+.welcome-pill:active{transform:translateY(0);}
+
+.topbar-right{flex:1; display:flex; justify-content:flex-end;}
+.lib-link{
+  display:inline-flex; align-items:center; gap:7px;
+  background:transparent; border:none; cursor:pointer;
+  font-size:11.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--black-2);
+  padding:6px 2px; position:relative; white-space:nowrap;
+}
+.lib-link svg{width:14px; height:14px; flex:none;}
+.lib-link::after{
+  content:''; position:absolute; left:2px; right:2px; bottom:0; height:1px;
+  background:var(--orange); transform:scaleX(0); transform-origin:right; transition:transform .25s var(--ease);
+}
+.lib-link:hover{color:var(--orange-burnt);}
+.lib-link:hover::after{transform:scaleX(1);}
+
+/* ============================= SIDEBAR DRAWER ============================= */
+.drawer-backdrop{
+  position:fixed; inset:0; background:rgba(17,17,17,.38); z-index:48;
+  opacity:0; pointer-events:none; transition:opacity .25s var(--ease);
+}
+.drawer-backdrop.open{opacity:1; pointer-events:auto;}
+.drawer{
+  position:fixed; top:0; left:0; height:100vh; width:var(--rail-w); max-width:86vw;
+  background:var(--black-2); color:#fff; z-index:49;
+  transform:translateX(-100%); transition:transform .32s var(--ease);
+  display:flex; flex-direction:column; padding:22px 14px;
+}
+.drawer.open{transform:translateX(0);}
+.drawer-head{display:flex; align-items:center; justify-content:space-between; padding:4px 8px 22px;}
+.drawer-head .mark{font-family:var(--serif); font-size:20px; font-style:italic; color:var(--orange);}
+.drawer-close{background:transparent; border:none; color:#cfc9bc; cursor:pointer; padding:6px; border-radius:6px; transition:background-color .2s var(--ease), color .2s var(--ease);}
+.drawer-close:hover{background:rgba(255,255,255,.08); color:#fff;}
+.drawer-close svg{width:16px; height:16px;}
+.drawer-nav{display:flex; flex-direction:column; gap:2px; overflow-y:auto;}
+.drawer-item{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+  background:transparent; border:none; cursor:pointer; color:#d7d1c4;
+  padding:11px 12px; border-radius:8px; font-size:13.5px; font-weight:500;
+  position:relative; transition:background-color .2s var(--ease), color .2s var(--ease);
+}
+.drawer-item .ic{width:17px; height:17px; flex:none; display:flex;}
+.drawer-item .ic svg{width:100%; height:100%;}
+.drawer-item::before{
+  content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:2px;
+  background:var(--orange); transform:scaleY(0); transition:transform .2s var(--ease);
+}
+.drawer-item:hover{background:rgba(255,255,255,.06); color:#fff;}
+.drawer-item.active{color:#fff; background:rgba(255,104,44,.14);}
+.drawer-item.active::before{transform:scaleY(1);}
+.drawer-foot{margin-top:auto; padding:14px 12px 2px; border-top:1px solid rgba(255,255,255,.08); font-size:11px; color:#8f8a7d;}
+
+/* ============================= HERO / HOME ============================= */
+.hero{
+  position:relative; z-index:1;
+  min-height:calc(100vh - 68px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:60px 24px 120px;
+}
+.hero h1{
+  font-family:var(--serif); font-weight:600;
+  font-size:clamp(34px, 6vw, 66px);
+  line-height:1.08; letter-spacing:-.01em;
+  color:var(--black-2);
+  margin:0 0 40px;
+}
+.hero h1 em{font-style:italic; color:var(--black-2);}
+
+.create-field{
+  display:flex; align-items:stretch; width:100%; max-width:660px;
+  background:var(--straw-2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 1px 2px rgba(32,32,32,.03), 0 10px 30px rgba(32,32,32,.05);
+  overflow:hidden;
+  transition:border-color .25s var(--ease), box-shadow .25s var(--ease);
+  position:relative;
+}
+.create-field::after{
+  content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px;
+  background:var(--orange); transform:scaleX(0); transition:transform .3s var(--ease);
+}
+.create-field:hover, .create-field.focused{
+  border-color:var(--orange);
+  box-shadow:0 1px 2px rgba(32,32,32,.03), 0 14px 34px rgba(255,104,44,.14);
+}
+.create-field:hover::after, .create-field.focused::after{transform:scaleX(1);}
+
+.cf-tag{
+  flex:none; display:flex; align-items:center;
+  padding:0 16px; font-size:11px; font-weight:700; letter-spacing:.14em;
+  color:var(--bronze); border-right:1px solid var(--border);
+  white-space:nowrap;
+}
+.cf-input-wrap{flex:1; display:flex; align-items:center; min-width:0; padding:0 6px 0 16px; gap:8px;}
+.cf-input-wrap input{
+  flex:1; min-width:0; border:none; background:transparent; outline:none;
+  font-size:14.5px; color:var(--graphite); padding:15px 0;
+}
+.cf-input-wrap input::placeholder{color:#9a9182; font-style:italic; font-family:var(--serif);}
+.cf-attach{
+  flex:none; width:30px; height:30px; border-radius:6px; border:none; background:transparent;
+  color:#8a8377; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background-color .2s var(--ease), color .2s var(--ease);
+}
+.cf-attach:hover{background:rgba(129,103,41,.12); color:var(--bronze);}
+.cf-attach svg{width:16px; height:16px;}
+.cf-thumb{
+  flex:none; width:28px; height:28px; border-radius:6px; overflow:hidden; border:1px solid var(--border);
+  position:relative;
+}
+.cf-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+.cf-thumb button{
+  position:absolute; inset:0; background:rgba(17,17,17,.55); color:#fff; border:none; cursor:pointer;
+  opacity:0; transition:opacity .18s var(--ease); font-size:13px;
+}
+.cf-thumb:hover button{opacity:1;}
+
+.cf-submit{
+  flex:none; border:none; cursor:pointer;
+  background:var(--black); color:#fff;
+  font-size:11.5px; font-weight:700; letter-spacing:.1em;
+  padding:0 22px;
+  display:flex; align-items:center; gap:8px;
+  transition:background-color .22s var(--ease), padding .22s var(--ease);
+}
+.cf-submit:hover{background:#000; padding:0 26px;}
+.cf-submit svg{width:13px; height:13px; transition:transform .22s var(--ease);}
+.cf-submit:hover svg{transform:translateX(3px);}
+.cf-submit:disabled{opacity:.5; cursor:not-allowed;}
+
+.hero-chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:640px; margin-top:26px;}
+.hero-chip{
+  border:1px solid var(--border); background:var(--white); color:var(--graphite);
+  font-size:12px; font-weight:600; padding:7px 14px; border-radius:999px; cursor:pointer;
+  transition:border-color .2s var(--ease), color .2s var(--ease), background-color .2s var(--ease);
+}
+.hero-chip:hover{border-color:var(--orange); color:var(--orange-burnt); background:#fff6f1;}
+
+@media (max-width:640px){
+  .topbar{padding:14px 16px;}
+  .brand-name{font-size:10.5px;}
+  .welcome-pill{padding:8px 14px; font-size:10.5px;}
+  .lib-link span.lbl{display:none;}
+  .hero{padding:36px 16px 90px;}
+  .hero h1{margin-bottom:28px;}
+  .cf-tag{padding:0 10px; font-size:10px;}
+  .cf-input-wrap{padding:0 4px 0 10px;}
+  .cf-submit{padding:0 14px; font-size:10.5px;}
+  .cf-submit:hover{padding:0 16px;}
+}
+
+/* ============================= GENERIC PAGE (biblioteca, perfil, etc.) ============================= */
+.page{position:relative; z-index:1; max-width:980px; margin:0 auto; padding:52px 24px 100px;}
+.page-head{margin-bottom:32px;}
+.page-head .eyebrow{font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--bronze);}
+.page-head h2{font-family:var(--serif); font-size:clamp(26px,4vw,38px); font-weight:600; margin:8px 0 0; color:var(--black-2);}
+.page-head p{color:var(--slate); font-size:14px; margin-top:8px; max-width:56ch;}
+
+.chip-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px;}
+.chip{
+  border:1px solid var(--border); background:var(--white); color:var(--graphite);
+  font-size:12.5px; font-weight:600; padding:7px 15px; border-radius:999px; cursor:pointer;
+  transition:.2s var(--ease);
+}
+.chip.active{background:var(--black-2); color:#fff; border-color:var(--black-2);}
+.chip:not(.active):hover{border-color:var(--orange);}
+
+.lib-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px;}
+.lib-card{
+  background:var(--white); border:1px solid var(--border); border-radius:12px; padding:18px;
+  display:flex; flex-direction:column; gap:10px; transition:box-shadow .2s var(--ease), transform .2s var(--ease), border-color .2s var(--ease);
+}
+.lib-card:hover{box-shadow:0 10px 26px rgba(32,32,32,.08); transform:translateY(-2px); border-color:var(--border);}
+.lib-card .type{font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--orange-burnt);}
+.lib-card h4{font-family:var(--serif); font-size:16.5px; margin:2px 0 0; font-weight:600; color:var(--black-2);}
+.lib-card p{font-size:13px; color:var(--slate); line-height:1.5; margin:0; flex:1; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
+.lib-card .meta{display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#a39c8d;}
+.fav-btn{background:transparent; border:none; cursor:pointer; color:#c9c2b3; padding:2px; transition:color .2s var(--ease), transform .2s var(--ease);}
+.fav-btn.on{color:var(--orange);}
+.fav-btn:hover{transform:scale(1.15);}
+.fav-btn svg{width:16px; height:16px;}
+
+.empty{
+  border:1px dashed var(--border); border-radius:14px; padding:56px 20px; text-align:center;
+  color:var(--slate); background:var(--straw-2);
+}
+.empty h4{font-family:var(--serif); color:var(--black-2); font-size:20px; margin:0 0 8px;}
+
+/* form */
+.form-card{background:var(--white); border:1px solid var(--border); border-radius:14px; padding:26px; max-width:520px;}
+.f-field{display:flex; flex-direction:column; gap:6px; margin-bottom:18px;}
+.f-field label{font-size:12px; font-weight:700; letter-spacing:.04em; color:var(--black-2);}
+.f-field input[type=text]{
+  border:1px solid var(--border); border-radius:8px; padding:11px 13px; font-size:14px;
+  background:var(--straw-2); transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.f-field input[type=text]:focus{outline:none; border-color:var(--orange); box-shadow:0 0 0 3px rgba(255,104,44,.14); background:#fff;}
+.logo-row{display:flex; align-items:center; gap:14px;}
+.logo-preview{width:56px; height:56px; border-radius:10px; background:var(--straw-2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; flex:none;}
+.logo-preview img{width:100%; height:100%; object-fit:cover;}
+.btn-black{
+  border:none; background:var(--black); color:#fff; font-size:12.5px; font-weight:700; letter-spacing:.05em;
+  padding:11px 22px; border-radius:8px; cursor:pointer; transition:background-color .2s var(--ease), transform .2s var(--ease);
+}
+.btn-black:hover{background:#000; transform:translateY(-1px);}
+.btn-outline{
+  border:1px solid var(--border); background:transparent; color:var(--graphite); font-size:12.5px; font-weight:700;
+  padding:10px 20px; border-radius:8px; cursor:pointer; transition:.2s var(--ease);
+}
+.btn-outline:hover{border-color:var(--orange); color:var(--orange-burnt);}
+
+.result-card{background:var(--white); border:1px solid var(--border); border-radius:14px; padding:28px; max-width:640px; margin:0 auto;}
+.result-card .type{font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--orange-burnt);}
+.result-card h3{font-family:var(--serif); font-size:24px; margin:8px 0 14px; color:var(--black-2);}
+.result-card .body{font-size:14.5px; line-height:1.7; color:var(--graphite); white-space:pre-line;}
+.result-actions{display:flex; gap:10px; margin-top:22px; flex-wrap:wrap;}
+
+.templates-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px;}
+.tpl-card{background:var(--white); border:1px solid var(--border); border-radius:12px; padding:20px; cursor:pointer; transition:.2s var(--ease);}
+.tpl-card:hover{border-color:var(--orange); transform:translateY(-2px); box-shadow:0 10px 24px rgba(32,32,32,.07);}
+.tpl-card .type{font-size:10px; font-weight:700; letter-spacing:.1em; color:var(--bronze); text-transform:uppercase;}
+.tpl-card h4{font-family:var(--serif); margin:6px 0 4px; color:var(--black-2);}
+.tpl-card p{font-size:12.5px; color:var(--slate); margin:0;}
+
+.toast-stack{position:fixed; bottom:22px; right:22px; z-index:200; display:flex; flex-direction:column; gap:10px; max-width:320px;}
+.toast{
+  background:var(--black-2); color:#fff; padding:12px 16px; border-radius:10px; font-size:13.5px;
+  display:flex; align-items:center; gap:10px; box-shadow:0 12px 26px rgba(32,32,32,.28);
+  animation:toast-in .2s var(--ease);
+}
+.toast .dot{width:7px; height:7px; border-radius:50%; background:var(--orange); flex:none;}
+@keyframes toast-in{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+</style>
+<link rel="stylesheet" href="divulgaia/agent.css?v=3">
+<link rel="stylesheet" href="divulgaia/premium.css?v=8">
+</head>
+<body>
+<div id="app"></div>
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script>
+/* ================================================================
+   DIVULGUIAR — estado (tudo em memória, sem backend, sem login)
+   ================================================================ */
+const state = {
+  route: 'home',
+  drawerOpen: false,
+  brand: { name: '', logo: '' },
+  library: [],
+  favorites: new Set(),
+  nextId: 1,
+  pendingImage: null
+};
+
+const CATEGORIES = [
+  { id:'campanha', label:'Campanhas' },
+  { id:'stories', label:'Stories' },
+  { id:'legenda', label:'Legendas' },
+  { id:'roteiro', label:'Roteiros' },
+  { id:'whatsapp', label:'WhatsApp' },
+  { id:'oferta', label:'Ofertas' },
+  { id:'ideia', label:'Ideias' },
+  { id:'arte', label:'Artes' }
+];
+const catLabel = id => (CATEGORIES.find(c => c.id === id) || {}).label || id;
+
+const TEMPLATES = [
+  { type:'campanha', title:'Lançamento de produto', desc:'Estrutura de campanha completa para apresentar uma novidade.' },
+  { type:'stories', title:'Sequência de 3 stories', desc:'Enredo curto para engajar em stories do Instagram.' },
+  { type:'legenda', title:'Legenda com chamada para ação', desc:'Texto pronto com gancho, corpo e CTA.' },
+  { type:'roteiro', title:'Roteiro de vídeo de 30s', desc:'Estrutura para vídeos curtos de divulgação.' },
+  { type:'whatsapp', title:'Mensagem de oferta no WhatsApp', desc:'Texto direto para disparo em lista de transmissão.' },
+  { type:'oferta', title:'Oferta relâmpago', desc:'Modelo de promoção com senso de urgência.' }
+];
+
+const icons = {
+  menu:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg>',
+  close:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 5l10 10M15 5 5 15"/></svg>',
+  book:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4.2c1.8-.9 4-.9 6.5 0v11.6c-2.5-.9-4.7-.9-6.5 0V4.2Z"/><path d="M17 4.2c-1.8-.9-4-.9-6.5 0v11.6c2.5-.9 4.7-.9 6.5 0V4.2Z"/></svg>',
+  home:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9.2 10 3l7 6.2"/><path d="M5 8v8h10V8"/></svg>',
+  create:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3v14M3 10h14"/></svg>',
+  campaign:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8.5v3a1 1 0 0 0 1 1h1.7l7.1 3.6c.66.34 1.4-.16 1.4-.94V4.84c0-.78-.74-1.28-1.4-.94L5.2 7.5H3.5a1 1 0 0 0-1 1Z"/></svg>',
+  template:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M3 8h14"/></svg>',
+  history:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 10a6 6 0 1 0 2-4.5"/><path d="M2.5 3v3h3"/><path d="M10 7v3.3l2.3 2.3"/></svg>',
+  heart:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 17s-6.4-4-6.4-8.6A3.4 3.4 0 0 1 10 6.4a3.4 3.4 0 0 1 6.4 2C16.4 13 10 17 10 17Z"/></svg>',
+  heartFill:'<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 17s-6.4-4-6.4-8.6A3.4 3.4 0 0 1 10 6.4a3.4 3.4 0 0 1 6.4 2C16.4 13 10 17 10 17Z"/></svg>',
+  user:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="6.6" r="3.2"/><path d="M3.5 17c1.2-3.4 4-5 6.5-5s5.3 1.6 6.5 5"/></svg>',
+  settings:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.8v2M10 15.2v2M17.2 10h-2M4.8 10h-2M15 5l-1.4 1.4M6.4 13.6 5 15M15 15l-1.4-1.4M6.4 6.4 5 5"/></svg>',
+  attach:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13.5 6.8 8.2 12a2 2 0 1 0 2.8 2.8l5.3-5.3a3.6 3.6 0 1 0-5.1-5.1L5.9 9.7a5 5 0 1 0 7 7"/></svg>',
+  arrow:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10h11M10.5 5l5 5-5 5"/></svg>'
+};
+
+const NAV = [
+  { id:'home', label:'Início', icon:'home' },
+  { id:'home-create', label:'Criar conteúdo', icon:'create' },
+  { id:'biblioteca', label:'Campanhas', icon:'campaign', filter:'campanha' },
+  { id:'biblioteca', label:'Biblioteca', icon:'book' },
+  { id:'templates', label:'Templates', icon:'template' },
+  { id:'historico', label:'Histórico', icon:'history' },
+  { id:'favoritos', label:'Favoritos', icon:'heart' },
+  { id:'perfil', label:'Perfil', icon:'user' },
+  { id:'configuracoes', label:'Configurações', icon:'settings' }
+];
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function toast(msg){
+  const stack = document.getElementById('toastStack');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span class="dot"></span><span>${escapeHtml(msg)}</span>`;
+  stack.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .2s ease'; }, 2500);
+  setTimeout(() => t.remove(), 2800);
+}
+function welcomeText(){
+  return state.brand.name ? `Bem-vindo, ${escapeHtml(state.brand.name)}` : 'Bem-vindo ao Divulguiar';
+}
+function headerName(){
+  return state.brand.name ? escapeHtml(state.brand.name) : 'Divulguiar';
+}
+function formatDate(d){
+  return new Date(d).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+/* ================================================================
+   CONTEÚDO SIMULADO (sem backend real — geração de exemplo)
+   ================================================================ */
+function inferType(text){
+  const t = text.toLowerCase();
+  if(/story|stories/.test(t)) return 'stories';
+  if(/whats?app/.test(t)) return 'whatsapp';
+  if(/legenda/.test(t)) return 'legenda';
+  if(/roteiro|v[íi]deo/.test(t)) return 'roteiro';
+  if(/oferta|promo[çc][ãa]o|desconto/.test(t)) return 'oferta';
+  if(/campanha/.test(t)) return 'campanha';
+  if(/arte|design|post/.test(t)) return 'arte';
+  return 'ideia';
+}
+function generateContent(text, hasImage, forcedType){
+  const type = forcedType || inferType(text);
+  const brand = state.brand.name || 'sua marca';
+  const bodies = {
+    campanha: `Campanha: ${text}\n\nObjetivo: aumentar o alcance e as vendas de ${brand} através de uma sequência coordenada de posts, stories e mensagens diretas.\n\nEtapa 1 — Teaser: gere curiosidade sem revelar tudo.\nEtapa 2 — Lançamento: apresente a oferta com uma chamada clara.\nEtapa 3 — Lembrete: reforce a urgência nas últimas 48h.`,
+    stories: `Story 1: "${text}" — abra com uma pergunta que prenda a atenção.\nStory 2: mostre o produto ou serviço em uso, com um selo de destaque.\nStory 3: chamada para ação — "Arrasta pra cima" ou "Chama no direct".`,
+    legenda: `${text} ✨\n\nAqui em ${brand}, a gente pensa em cada detalhe pra você. Comenta aqui embaixo e marca alguém que precisa ver isso!\n\n#${(brand||'divulguiar').replace(/\s+/g,'')} #NovidadeNaPraça`,
+    roteiro: `[Abertura – 0:00-0:03]\nCorte rápido mostrando: ${text}\n\n[Meio – 0:03-0:20]\nExplique o benefício principal em tom direto e próximo.\n\n[Fechamento – 0:20-0:30]\nChamada para ação: "Chama agora no WhatsApp" com texto na tela.`,
+    whatsapp: `Oi! 👋 Passando pra te contar: ${text}\n\nÉ por tempo limitado — responde essa mensagem que eu te conto os detalhes e já separo o seu. 🧡`,
+    oferta: `⚡ OFERTA RELÂMPAGO ⚡\n${text}\n\nSó até o fim do dia. Corre que é por poucas unidades!`,
+    ideia: `Ideia de divulgação: ${text}\n\nSugestão de formato: comece com um gancho visual forte, conte a história por trás do produto e termine com um convite direto para o cliente agir.`,
+    arte: `Direção de arte para: ${text}\n\nPaleta sugerida: palha, preto e laranja queimado — mesma identidade do ${brand}.\nComposição: produto centralizado, bastante espaço negativo, tipografia serifada elegante.`
+  };
+  const titles = {
+    campanha:'Campanha gerada', stories:'Sequência de stories', legenda:'Legenda pronta',
+    roteiro:'Roteiro de vídeo', whatsapp:'Mensagem para WhatsApp', oferta:'Oferta relâmpago',
+    ideia:'Ideia de divulgação', arte:'Direção de arte'
+  };
+  return {
+    id: state.nextId++,
+    type,
+    title: titles[type],
+    content: bodies[type] + (hasImage ? '\n\n(Imagem anexada considerada na criação.)' : ''),
+    date: new Date().toISOString(),
+    prompt: text
+  };
+}
+
+/* ================================================================
+   RENDER — SHELL / HEADER / DRAWER
+   ================================================================ */
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="drawer-backdrop ${state.drawerOpen ? 'open' : ''}" id="drawerBackdrop"></div>
+    <aside class="drawer ${state.drawerOpen ? 'open' : ''}" id="drawer">
+      <div class="drawer-head">
+        <span class="mark">Divulguiar</span>
+        <button class="drawer-close" id="drawerClose" aria-label="Fechar menu">${icons.close}</button>
+      </div>
+      <nav class="drawer-nav">
+        ${NAV.map((item, i) => `
+          <button class="drawer-item ${state.route === item.id ? 'active' : ''}" data-nav="${i}">
+            <span class="ic">${icons[item.icon]}</span><span>${item.label}</span>
+          </button>
+        `).join('')}
+      </nav>
+      <div class="drawer-foot">Painel de demonstração — nada é enviado a servidores externos.</div>
+    </aside>
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn" aria-label="Abrir menu">${icons.menu}</button>
+        <div class="brand-name" id="brandNameBtn" title="Ir para o início">${headerName()}</div>
+      </div>
+      <button class="welcome-pill" id="welcomeBtn">${welcomeText()}</button>
+      <div class="topbar-right">
+        <button class="lib-link" id="libBtn">${icons.book}<span class="lbl">Biblioteca</span></button>
+      </div>
+    </header>
+
+    <main id="main"></main>
+  `;
+
+  document.getElementById('menuBtn').addEventListener('click', () => { state.drawerOpen = true; render(); });
+  document.getElementById('drawerClose').addEventListener('click', () => { state.drawerOpen = false; render(); });
+  document.getElementById('drawerBackdrop').addEventListener('click', () => { state.drawerOpen = false; render(); });
+  document.getElementById('brandNameBtn').addEventListener('click', () => { state.route = 'home'; state.drawerOpen = false; render(); });
+  document.getElementById('welcomeBtn').addEventListener('click', () => { state.route = 'perfil'; state.drawerOpen = false; render(); });
+  document.getElementById('libBtn').addEventListener('click', () => { state.route = 'biblioteca'; state.libFilter = null; state.drawerOpen = false; render(); });
+
+  app.querySelectorAll('[data-nav]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = NAV[Number(btn.dataset.nav)];
+      state.route = item.id === 'home-create' ? 'home' : item.id;
+      state.libFilter = item.filter || null;
+      state.drawerOpen = false;
+      render();
+      if(item.id === 'home-create'){
+        setTimeout(() => document.getElementById('createInput')?.focus(), 260);
+      }
+    });
+  });
+
+  renderRoute();
+}
+
+function renderRoute(){
+  const main = document.getElementById('main');
+  const routes = {
+    home: renderHome, biblioteca: renderBiblioteca, templates: renderTemplates,
+    historico: renderHistorico, favoritos: renderFavoritos, perfil: renderPerfil,
+    configuracoes: renderConfiguracoes, resultado: renderResultado
+  };
+  (routes[state.route] || renderHome)(main);
+}
+
+/* ================================================================
+   HOME — HERO + CAMPO DE CRIAÇÃO
+   ================================================================ */
+function renderHome(main){
+  main.innerHTML = `
+    <section class="hero">
+      <h1>Crie a divulgação da sua <em>marca.</em></h1>
+      <div class="create-field" id="createField">
+        <div class="cf-tag">CRIAR</div>
+        <div class="cf-input-wrap">
+          <input type="text" id="createInput" placeholder="Descreva o que você deseja criar" autocomplete="off">
+          <div id="thumbSlot"></div>
+          <button class="cf-attach" id="attachBtn" type="button" aria-label="Anexar imagem">${icons.attach}</button>
+          <input type="file" id="attachInput" accept="image/*" class="hidden">
+        </div>
+        <button class="cf-submit" id="submitCreate" type="button">CRIAR ${icons.arrow}</button>
+      </div>
+      <div class="hero-chips">
+        ${['Campanha para Instagram','Stories','Legenda','Roteiro de vídeo','Mensagem de WhatsApp','Oferta'].map(c => `<button class="hero-chip" data-chip="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('')}
+      </div>
+    </section>
+  `;
+
+  const field = document.getElementById('createField');
+  const input = document.getElementById('createInput');
+  const attachBtn = document.getElementById('attachBtn');
+  const attachInput = document.getElementById('attachInput');
+  const thumbSlot = document.getElementById('thumbSlot');
+  const submitBtn = document.getElementById('submitCreate');
+
+  input.addEventListener('focus', () => field.classList.add('focused'));
+  input.addEventListener('blur', () => field.classList.remove('focused'));
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') doCreate(); });
+
+  attachBtn.addEventListener('click', () => attachInput.click());
+  attachInput.addEventListener('change', () => {
+    const file = attachInput.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.pendingImage = reader.result;
+      thumbSlot.innerHTML = `<div class="cf-thumb"><img src="${state.pendingImage}"><button type="button" id="removeThumb" aria-label="Remover imagem">${icons.close}</button></div>`;
+      document.getElementById('removeThumb').addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.pendingImage = null;
+        attachInput.value = '';
+        thumbSlot.innerHTML = '';
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  main.querySelectorAll('[data-chip]').forEach(chip => {
+    chip.addEventListener('click', () => { input.value = chip.dataset.chip + ': '; input.focus(); });
+  });
+
+  submitBtn.addEventListener('click', doCreate);
+
+  function doCreate(){
+    const text = input.value.trim();
+    if(!text && !state.pendingImage){
+      input.focus();
+      toast('Descreva o que você deseja criar');
+      return;
+    }
+    const entry = generateContent(text || 'Conteúdo a partir de imagem', !!state.pendingImage);
+    entry.image = state.pendingImage;
+    state.library.unshift(entry);
+    state.pendingImage = null;
+    state.lastResult = entry;
+    toast('Conteúdo criado com sucesso');
+    state.route = 'resultado';
+    render();
+  }
+}
+
+/* ================================================================
+   RESULTADO
+   ================================================================ */
+function renderResultado(main){
+  const entry = state.lastResult;
+  if(!entry){ state.route = 'home'; renderHome(main); return; }
+  main.innerHTML = `
+    <div class="page">
+      <div class="result-card">
+        <div class="type">${catLabel(entry.type)}</div>
+        <h3>${escapeHtml(entry.title)}</h3>
+        ${entry.image ? `<div class="cf-thumb" style="width:100%; height:180px; border-radius:10px; margin-bottom:14px;"><img src="${entry.image}" style="width:100%;height:100%;object-fit:cover;"></div>` : ''}
+        <div class="body">${escapeHtml(entry.content)}</div>
+        <div class="result-actions">
+          <button class="btn-black" id="favToggle">${state.favorites.has(entry.id) ? '★ Remover dos favoritos' : '☆ Salvar nos favoritos'}</button>
+          <button class="btn-outline" id="copyBtn">Copiar texto</button>
+          <button class="btn-outline" id="backHome">Criar outro</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('favToggle').addEventListener('click', () => {
+    if(state.favorites.has(entry.id)) state.favorites.delete(entry.id); else state.favorites.add(entry.id);
+    render();
+  });
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    navigator.clipboard?.writeText(entry.content).then(() => toast('Texto copiado')).catch(() => toast('Não foi possível copiar'));
+  });
+  document.getElementById('backHome').addEventListener('click', () => { state.route = 'home'; render(); });
+}
+
+/* ================================================================
+   BIBLIOTECA / HISTÓRICO / FAVORITOS
+   ================================================================ */
+function libraryList(filterId, list){
+  const items = list || state.library;
+  const filtered = filterId ? items.filter(i => i.type === filterId) : items;
+  if(!filtered.length){
+    return `<div class="empty"><h4>Nada por aqui ainda</h4><p>Crie sua primeira campanha, story ou legenda na tela inicial.</p></div>`;
+  }
+  return `<div class="lib-grid">
+    ${filtered.map(e => `
+      <div class="lib-card" data-open="${e.id}">
+        <div class="type">${catLabel(e.type)}</div>
+        <h4>${escapeHtml(e.title)}</h4>
+        <p>${escapeHtml(e.content)}</p>
+        <div class="meta">
+          <span>${formatDate(e.date)}</span>
+          <button class="fav-btn ${state.favorites.has(e.id) ? 'on' : ''}" data-fav="${e.id}">${state.favorites.has(e.id) ? icons.heartFill : icons.heart}</button>
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+function bindLibraryEvents(main, list){
+  main.querySelectorAll('[data-fav]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = Number(btn.dataset.fav);
+      if(state.favorites.has(id)) state.favorites.delete(id); else state.favorites.add(id);
+      renderRoute();
+    });
+  });
+  main.querySelectorAll('[data-open]').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = Number(card.dataset.open);
+      const entry = (list || state.library).find(e => e.id === id);
+      if(entry){ state.lastResult = entry; state.route = 'resultado'; render(); }
+    });
+  });
+}
+
+function renderBiblioteca(main){
+  const active = state.libFilter;
+  main.innerHTML = `
+    <div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Biblioteca</div>
+        <h2>Campanhas, artes, textos e roteiros</h2>
+        <p>Tudo o que você já criou com o Divulguiar, organizado por categoria.</p>
+      </div>
+      <div class="chip-row">
+        <button class="chip ${!active ? 'active' : ''}" data-cat="">Tudo</button>
+        ${CATEGORIES.map(c => `<button class="chip ${active === c.id ? 'active' : ''}" data-cat="${c.id}">${c.label}</button>`).join('')}
+      </div>
+      <div id="libList">${libraryList(active)}</div>
+    </div>
+  `;
+  main.querySelectorAll('[data-cat]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      state.libFilter = chip.dataset.cat || null;
+      document.getElementById('libList').innerHTML = libraryList(state.libFilter);
+      bindLibraryEvents(main);
+      main.querySelectorAll('[data-cat]').forEach(c => c.classList.toggle('active', c.dataset.cat === (state.libFilter || '')));
+    });
+  });
+  bindLibraryEvents(main);
+}
+
+function renderHistorico(main){
+  const sorted = [...state.library].sort((a,b) => new Date(b.date) - new Date(a.date));
+  main.innerHTML = `
+    <div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Histórico</div>
+        <h2>Suas criações mais recentes</h2>
+      </div>
+      <div id="libList">${libraryList(null, sorted)}</div>
+    </div>
+  `;
+  bindLibraryEvents(main, sorted);
+}
+
+function renderFavoritos(main){
+  const favs = state.library.filter(e => state.favorites.has(e.id));
+  main.innerHTML = `
+    <div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Favoritos</div>
+        <h2>Conteúdos que você salvou</h2>
+      </div>
+      <div id="libList">${libraryList(null, favs)}</div>
+    </div>
+  `;
+  bindLibraryEvents(main, favs);
+}
+
+/* ================================================================
+   TEMPLATES
+   ================================================================ */
+function renderTemplates(main){
+  main.innerHTML = `
+    <div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Templates</div>
+        <h2>Comece a partir de um modelo</h2>
+        <p>Escolha um ponto de partida e ajuste com sua própria ideia.</p>
+      </div>
+      <div class="templates-grid">
+        ${TEMPLATES.map((t,i) => `
+          <div class="tpl-card" data-tpl="${i}">
+            <div class="type">${catLabel(t.type)}</div>
+            <h4>${escapeHtml(t.title)}</h4>
+            <p>${escapeHtml(t.desc)}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  main.querySelectorAll('[data-tpl]').forEach(card => {
+    card.addEventListener('click', () => {
+      const t = TEMPLATES[Number(card.dataset.tpl)];
+      const entry = generateContent(t.title, false, t.type);
+      state.library.unshift(entry);
+      state.lastResult = entry;
+      toast('Modelo aplicado');
+      state.route = 'resultado';
+      render();
+    });
+  });
+}
+
+/* ================================================================
+   PERFIL / CADASTRO
+   ================================================================ */
+function renderPerfil(main){
+  main.innerHTML = `
+    <div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Perfil</div>
+        <h2>Nome da marca e da empresa</h2>
+        <p>Esse nome aparece no cabeçalho e na saudação de boas-vindas.</p>
+      </div>
+      <div class="form-card">
+        <div class="f-field">
+          <label>Logo</label>
+          <div class="logo-row">
+            <div class="logo-preview" id="logoPreview">${state.brand.logo ? `<img src="${state.brand.logo}">` : ''}</div>
+            <button class="btn-outline" id="logoBtn" type="button">Enviar logo</button>
+            <input type="file" id="logoInput" accept="image/*" class="hidden">
+          </div>
+        </div>
+        <div class="f-field">
+          <label for="brandInput">Nome da marca ou empresa</label>
+          <input type="text" id="brandInput" placeholder="Ex.: Studio Bela Barbearia" value="${escapeHtml(state.brand.name)}">
+        </div>
+        <button class="btn-black" id="saveBrand" type="button">Salvar</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('logoBtn').addEventListener('click', () => document.getElementById('logoInput').click());
+  document.getElementById('logoInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.brand.logo = reader.result;
+      document.getElementById('logoPreview').innerHTML = `<img src="${state.brand.logo}">`;
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('saveBrand').addEventListener('click', () => {
+    state.brand.name = document.getElementById('brandInput').value.trim();
+    toast('Perfil atualizado');
+    render();
+  });
+}
+
+/* ================================================================
+   CONFIGURAÇÕES
+   ================================================================ */
+function renderConfiguracoes(main){
+  main.innerHTML = `
+    <div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Configurações</div>
+        <h2>Preferências do Divulguiar</h2>
+      </div>
+      <div class="form-card">
+        <div class="f-field">
+          <label>Itens na biblioteca</label>
+          <input type="text" value="${state.library.length} criações salvas" disabled>
+        </div>
+        <div class="f-field">
+          <label>Favoritos</label>
+          <input type="text" value="${state.favorites.size} itens marcados" disabled>
+        </div>
+        <button class="btn-outline" id="clearLib" type="button">Limpar biblioteca</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('clearLib').addEventListener('click', () => {
+    state.library = [];
+    state.favorites.clear();
+    toast('Biblioteca limpa');
+    render();
+  });
+}
+
+</script>
+<script src="divulgaia/safety.js?v=3"></script>
+<script src="divulgaia/agent.js?v=3"></script>
+<script src="divulgaia/local-tools.js?v=4"></script>
+<script src="divulgaia/experience.js?v=4"></script>
+<script src="divulgaia/premium.js?v=3"></script>
+</body>
+</html>
