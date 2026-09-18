@@ -2,7 +2,9 @@
 
 ## Atendimento DivulgaPro AI
 
-A identidade e as diretrizes de marketing estão em `divulgaia/divulgapro-policy.md`, carregadas pelo servidor em todas as gerações de texto. Incluem os 15 modos de atendimento, briefing de até cinco perguntas, formatos prontos, hipóteses explícitas e proibição de inventar preços, resultados, depoimentos ou urgência.
+A identidade e as diretrizes de marketing estão em `divulgaia/divulgapro-policy.md`, carregadas pelo servidor em todas as gerações de texto. Incluem os 15 modos, respostas curtas por padrão, uma pergunta por vez quando necessária, hipóteses explícitas e proibição de inventar preços, resultados, depoimentos ou urgência. Formatos completos ficam reservados a pedidos explícitos de detalhe.
+
+O atendimento distingue pedidos diretos, recusas, encerramentos e ideias em discussão. No modo local, expressões como “não quero”, “não é isso”, “prefiro” e variantes comuns mudam a direção; frases tentativas como “talvez” ou “será que” pedem esclarecimento antes da execução. Uma confirmação retoma apenas a proposta mais recente e é invalidada por uma nova resposta. Essa interpretação local usa regras limitadas; o atendimento online também recebe orientações para interpretar significado e histórico. Perguntas e recusas não acionam automaticamente a edição de fotos. A escrita progressiva exibe quatro caracteres a cada 40 ms, respeitando a preferência por movimento reduzido.
 
 O seletor de conteúdo oferece Estratégia, Conteúdo, Campanhas, Anúncios pagos, Vendas, Marca, Análise, Lançamento, Marketing local, Produto, Serviço, Ideias, Melhoria, Calendário e Diagnóstico, além dos formatos específicos existentes. O servidor recebe a seleção e preserva o contexto da marca e da conversa. O pedido explícito tem prioridade sobre o modo escolhido.
 

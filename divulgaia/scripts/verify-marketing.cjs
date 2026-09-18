@@ -12,8 +12,8 @@ test('all 15 modes produce editable starters without invented business facts', (
   for (const { id } of marketing.modes) {
     const result = marketing.draft('Quero divulgar minha empresa', { company: 'Marca de teste' }, id);
     assert.equal(result.type, id);
-    assert.match(result.content, /Modelo local editável/);
-    assert.match(result.content, /\[INSIRA/);
+    assert(result.content.length < 1000, `${id} should stay conversational`);
+    assert.doesNotMatch(result.content, /DIAGNÓSTICO|MÉTRICAS|Modelo local editável/);
     assert.doesNotMatch(result.content, /R\$\s*\d|garantimos|vendas garantidas/i);
   }
 });
@@ -43,7 +43,7 @@ test('local conversation uses onboarding, templates, revisions and safety before
   const source = fs.readFileSync(path.join(__dirname, '../experience.js'), 'utf8');
   vm.runInContext(source.split('generateContent = localConversation;')[0], context);
   assert.equal(context.localConversation('Olá!', false, '').content, marketing.welcome);
-  const campaign = context.localConversation('Campanha para minha loja', false, '');
+  const campaign = context.localConversation('Campanha completa para minha loja', false, '');
   assert.match(campaign.content, /FASES/);
   assert.match(campaign.content, /PÓS|Pós/);
   assert.equal(campaign.localTemplate, true);
@@ -59,6 +59,63 @@ test('deceptive marketing is refused while truthful requests and prevention rema
     assert.equal(safety.review(text), 'block');
   for (const text of ['Peça avaliações sinceras aos clientes', 'Como evitar avaliações falsas?', 'Crie uma campanha para minha padaria'])
     assert.equal(safety.review(text), 'allow');
+});
+
+test('feedback distinguishes refusals, clear requests, exploration and quoted negation', () => {
+  for (const phrase of ['não quero', 'n quero', 'nn gostei', 'não é por aí', 'faz diferente', 'não gostei', 'não é isso', 'mudei de ideia', 'isso não serve', 'prefiro outra coisa'])
+    assert.equal(marketing.intent(phrase).kind, 'change', phrase);
+  for (const phrase of ['Talvez um vídeo', 'Será que ficaria melhor?', 'Não sei se uma legenda funciona', 'Estou pensando em mudar'])
+    assert.equal(marketing.intent(phrase).kind, 'explore', phrase);
+  for (const phrase of ['Faça uma legenda', 'Pode criar um roteiro?', 'Crie um post com a frase “não quero perder tempo”', 'Não quero que pare'])
+    assert.equal(marketing.intent(phrase).kind, 'execute', phrase);
+  assert.equal(marketing.intent('Como funciona a edição?').kind, 'question');
+  assert.equal(marketing.intent('Deixa pra lá').kind, 'stop');
+  assert.equal(marketing.intent('Pode fazer').kind, 'confirm');
+  assert.equal(marketing.intent('Não gostei, talvez uma legenda').kind, 'explore');
+  const pivot = marketing.pivot('Não quero vídeo, faça uma legenda', {}, { type: 'roteiro' });
+  assert.equal(pivot.type, 'legenda');
+  assert.doesNotMatch(pivot.content, /Roteiro|CENA/);
+  assert(marketing.pivot('Não gostei', {}, { type: 'legenda' }).type !== 'legenda');
+  assert.equal(marketing.pivot('Não quero mais', {}, { type: 'legenda' }).stopped, true);
+});
+
+test('ambiguous photo requests wait; only the latest proposal can be confirmed', async () => {
+  const state = { nextId: 1, brand: {}, messages: [], mode: 'photo' };
+  const edits = [];
+  const context = vm.createContext({
+    window: { DivulguiarSafety: safety, DivulgaProMarketing: marketing,
+      DivulguiarLocal: { revise: () => null, editPhoto: async (...args) => { edits.push(args); return { text: 'Foto ajustada' }; } } },
+    NAV: [], CATEGORIES: [], state, catLabel: value => value,
+  });
+  const source = fs.readFileSync(path.join(__dirname, '../experience.js'), 'utf8');
+  vm.runInContext(source.split('generateContent = localConversation;')[0], context);
+  vm.runInContext(source.slice(source.indexOf('function currentHistory()'), source.indexOf('submitRequest = async')), context);
+  vm.runInContext("generatedImages.set('photo-reference', 'original-image')", context);
+  async function send(text, image = null) {
+    state.messages.push({ role: 'user', text, ...(image && { imageId: 'photo-reference' }) });
+    const entry = await context.requestAgent(text, image, state.mode);
+    state.messages.push({ role: 'assistant', entry });
+    return entry;
+  }
+  const proposed = await send('Talvez aumentar o brilho', 'original-image');
+  assert.match(proposed.content, /Quer que eu/);
+  assert.equal(edits.length, 0);
+  await send('Pode fazer');
+  assert.equal(edits.length, 1);
+  assert.equal(edits[0][0], 'original-image');
+  await send('Será que ficaria melhor com mais contraste?', 'original-image');
+  assert.equal(edits.length, 1);
+  await send('Não quero, prefiro uma legenda');
+  assert.equal(state.mode, 'legenda');
+  assert.equal(edits.length, 1);
+  const staleConfirmation = await send('Pode fazer');
+  assert.match(staleConfirmation.content, /O que você quer/);
+  assert.equal(edits.length, 1);
+  state.mode = 'photo';
+  await send('Como funciona o ajuste de brilho?', 'original-image');
+  assert.equal(edits.length, 1);
+  await send('Aumente o brilho', 'original-image');
+  assert.equal(edits.length, 2);
 });
 
 test('server sends full persona, mode, brand and history to the text provider', async () => {
@@ -78,7 +135,9 @@ test('server sends full persona, mode, brand and history to the text provider', 
     });
     assert.equal(result.text, 'Texto de teste');
     assert.match(generation.instructions, /Você é a DivulgaPro AI/);
-    assert.match(generation.instructions, /no máximo cinco perguntas/);
+    assert.match(generation.instructions, /Faça uma pergunta por vez/);
+    assert.match(generation.instructions, /duas a cinco frases/);
+    assert.match(generation.instructions, /abandone a proposta rejeitada/);
     assert.match(generation.instructions, /CENA, FALA, TEXTO NA TELA/);
     assert.match(generation.instructions, /B2B2C/);
     assert.match(generation.instructions, /não invente valores/i);

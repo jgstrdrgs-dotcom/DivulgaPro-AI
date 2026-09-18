@@ -1,13 +1,6 @@
 /* Shared metadata and editable offline starters. These are templates, not AI. */
 (function (root) {
-  const welcome = `Olá! Eu sou a DivulgaPro AI. Posso ajudar você a divulgar sua marca, produto, serviço ou projeto com estratégias, ideias e materiais prontos para usar.
-
-Para começar, me diga:
-1. O que você deseja divulgar?
-2. Para quem deseja divulgar?
-3. Qual é seu principal objetivo: vender, atrair clientes, ganhar seguidores, gerar mensagens ou fortalecer a marca?
-
-Se preferir, também posso criar uma estratégia inicial a partir de uma descrição simples.`;
+  const welcome = 'Oi! Sou a DivulgaPro AI. O que você quer divulgar hoje?';
   const modes = [
     ['estrategia', 'Estratégia'], ['conteudo', 'Conteúdo'], ['campanha', 'Campanhas'],
     ['anuncios', 'Anúncios pagos'], ['vendas', 'Vendas'], ['marca', 'Marca'],
@@ -16,6 +9,45 @@ Se preferir, também posso criar uma estratégia inicial a partir de uma descri�
     ['melhoria', 'Melhoria'], ['calendario', 'Calendário'], ['diagnostico', 'Diagnóstico'],
   ].map(([id, label]) => ({ id, label }));
   const normalize = text => String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const feedbackText = text => normalize(text).trim().replace(/^(?:n|nn|naum)\b/, 'nao');
+  function changeOfDirection(text) {
+    const value = feedbackText(text);
+    // Only interpret conversational feedback, never a negation inside requested copy.
+    if (/^nao (?:quero|precisa) (?:que (?:voce )?)?(?:par|desist|cancel)/.test(value)) return null;
+    if (!/^(?:(?:obrigad[oa]|valeu|hmm?|ok|olha)[,!. ]+)?(?:nao(?:[.!?\s]*$|,| (?:quero|gostei|curti|era|e isso|e por ai|desse jeito|to afim|estou afim|precisa|funciona|serve))|melhor nao|muda isso|faz diferente|tenta de outro jeito|outra ideia|desisti|mudei de ideia|deixa (?:pra|para) la|esquece|pare\b|para\b|cancela|chega\b|prefiro\b|(?:quero|tente|me de) outra|(?:isso|essa ideia|esse texto) nao)/.test(value)) return null;
+    const alternative = text.match(/(?:^|[,;.!?]\s*|\s+(?:mas|e sim)\s+)((?:agora\s+)?(?:prefiro|quero|faça|faca|crie|monte|vamos|escreva|tente|mude para|me d[eêaá]|pode fazer)\s+.+)$/i);
+    const request = alternative?.[1]?.trim() || null;
+    if (!request && /^(?:nao quero mais|nao precisa(?: mais)?|deixa (?:pra|para) la|esquece(?: isso)?|pare|para|cancela(?:r)?|chega|desisti)[.!\s]*$/.test(value))
+      return { stop: true, request: null, declined: '' };
+    return { stop: false, request, declined: detect(value.split(/[,;.!?]|\bmas\b/)[0], '') };
+  }
+  function intent(text) {
+    const value = feedbackText(text);
+    const change = changeOfDirection(text);
+    const tentativeAlternative = text.match(/(?:[,;.!?]\s*|\s+mas\s+)((?:talvez|quem sabe|ser[aá] que|estou pensando|acho que).+)$/i);
+    if (change && tentativeAlternative) return { kind: 'explore', request: tentativeAlternative[1] };
+    if (change) return { kind: change.stop ? 'stop' : 'change', ...change };
+    if (/^(?:sim|pode(?: fazer| executar| seguir)?|faz isso|faca isso|isso mesmo|manda|vamos nessa|segue|ok|claro)[.!\s]*$/.test(value)) return { kind: 'confirm' };
+    if (/^(?:talvez|quem sabe|acho que|sera que|e se\b|estou pensando|penso em|nao sei|(?:voce |vc )?acha|o que (?:voce |vc )?acha)/.test(value)) return { kind: 'explore' };
+    if (/^(?:como|qual|quais|por que|porque|o que|voce consegue|vc consegue|da (?:pra|para))\b/.test(value)) return { kind: 'question' };
+    return { kind: 'execute' };
+  }
+  function pivot(text, brand, previous) {
+    const change = changeOfDirection(text);
+    if (!change) return null;
+    if (change.stop) return { type: 'ideia', content: 'Tudo bem, deixamos isso de lado.', stopped: true };
+    if (change.request) {
+      const result = draft(change.request, brand);
+      return result && { ...result, content: `Certo, vamos por esse caminho.\n\n${result.content}` };
+    }
+    if (!previous) return { type: 'ideia', content: 'Tudo bem. O que você prefere fazer?' };
+    const alternatives = ['legenda', 'stories', 'whatsapp', 'ideia'];
+    const index = alternatives.indexOf(previous.type);
+    const type = [...alternatives.slice(index + 1), ...alternatives.slice(0, index + 1)]
+      .find(candidate => candidate !== previous.type && candidate !== change.declined) || 'ideia';
+    const result = draft('Uma nova abordagem', brand, type);
+    return { ...result, content: `Vamos mudar a ideia.\n\n${result.content}` };
+  }
   function detect(text, fallback = '') {
     const value = normalize(text);
     // Prefer the requested deliverable over a channel or subject mentioned later.
@@ -45,6 +77,7 @@ Se preferir, também posso criar uma estratégia inicial a partir de uma descri�
     const product = '[INSIRA O PRODUTO/SERVIÇO]';
     const benefit = '[INSIRA UM BENEFÍCIO REAL]';
     const cta = 'Envie QUERO para [INSIRA O WHATSAPP] e conheça as opções.';
+    const seconds = Number(text.match(/\b(15|30|60)\s*(?:s\b|segundos?)/i)?.[1] || 15);
     const caption = `Antes de escolher ${product}, veja este detalhe: [INSIRA UM DIFERENCIAL COMPROVÁVEL].\nCom ${name}, você pode ${benefit}.\n${cta}`;
     const whatsapp = `Olá, [NOME]! Aqui é da ${name}. Você gostaria de conhecer ${product} e entender como pode ajudar com [INSIRA A NECESSIDADE]? Posso enviar as opções?`;
     const assumptions = `Modelo local editável, sem análise por IA. Pedido de referência: “${text}”.\nPreencha os campos antes de publicar. Hipótese inicial: gerar conversas qualificadas com ${audience}; valide o canal com seus clientes. Tom inicial: ${brand.tone || 'claro e acolhedor'}.`;
@@ -70,12 +103,34 @@ Se preferir, também posso criar uma estratégia inicial a partir de uma descri�
       calendario: `PLANO BÁSICO · UMA SEMANA\nHipótese: três publicações e Stories simples, ajustáveis à sua capacidade.\n\nSEGUNDA · Instagram · Carrossel\nTema: critérios para escolher ${product}. Objetivo: atrair público interessado.\nGancho: “Antes de escolher, observe isso.”\nCTA: salve para consultar.\nLegenda: “[INSIRA UM CRITÉRIO REAL] ajuda você a escolher com mais clareza.”\nVisual: foto real e um critério por tela. Funil: descoberta.\n\nQUARTA · Instagram · Reel\nTema: demonstração. Objetivo: explicar um benefício.\nGancho: “Veja como funciona na prática.”\nCTA: envie sua dúvida.\nLegenda: “Veja [INSIRA O PROCESSO REAL] e entenda ${benefit}.”\nVisual: produto em uso, com texto legível. Funil: consideração.\n\nSEXTA · Instagram · Foto + Stories\nTema: oferta. Objetivo: gerar conversas.\nGancho: “Conheça as opções de ${name}.”\nCTA: ${cta}\nLegenda: “${product} por [INSIRA O PREÇO]. [INSIRA AS CONDIÇÕES].”\nVisual: foto original e contato. Funil: conversão.\n\nAVALIAÇÃO\nAo final da semana, registre salvamentos, dúvidas, conversas e pedidos. Só aumente a frequência se conseguir produzir e atender.`,
       oferta: `OFERTA EDITÁVEL\n${product} para ${audience}.\nBenefício: ${benefit}.\nDiferencial: [INSIRA UM DIFERENCIAL REAL].\nPreço: [INSIRA O PREÇO].\nCondições: [INSIRA AS CONDIÇÕES].\nPrazo ou garantia: inclua somente se existirem.\n\nTEXTO PRONTO\n${caption}\n\nPRÓXIMO PASSO\nConfirme preço, condições e capacidade antes de divulgar.`,
     };
-    const content = templates[type];
+    const concise = {
+      estrategia: `Eu começaria com uma demonstração de ${product} e um convite para conversar.\n\nTexto: “Veja como ${product} pode ajudar a ${benefit}. Quer saber mais? Fale com ${name} em [INSIRA O WHATSAPP].”\n\nAcompanhe quantas conversas viram pedidos.`,
+      campanha: `Vamos usar a ideia “Conheça de perto”: mostre o produto, responda uma dúvida e convide para conversar.\n\n“Conheça ${product} da ${name}: ${benefit}. Confira as opções em [INSIRA O WHATSAPP].”\n\nComece com uma foto real e esse texto.`,
+      conteudo: `Faça um carrossel de três telas:\n1. “Antes de escolher ${product}, veja isso.”\n2. “[INSIRA UM DIFERENCIAL COMPROVÁVEL].”\n3. “Tire suas dúvidas com ${name}.”\n\nLegenda: ${caption}`,
+      anuncios: `Use uma foto real com este texto:\n\n${caption}\n\nTítulo: “Conheça ${product}”. Botão: “Enviar mensagem”.\n\nSe houver orçamento, teste uma segunda abertura: “Procurando ${product}?” Compare o custo por conversa qualificada.`,
+      vendas: whatsapp,
+      marca: `Uma frase para apresentar sua marca:\n\n“${name} ajuda ${audience} a ${benefit}, com [INSIRA UM DIFERENCIAL REAL].”\n\nUse um tom claro e acolhedor.`,
+      analise: 'Cole o texto ou os resultados que você quer analisar. Eu começo pelo ponto que mais precisa de ajuste.',
+      diagnostico: 'Onde está a dificuldade: alcançar pessoas, receber mensagens ou fechar vendas? Se tiver os números, envie também.',
+      melhoria: 'Cole o texto que você quer mudar. Eu devolvo uma versão mais direta.',
+      lancamento: `Comece com uma dúvida do público, depois mostre a novidade em uso. No lançamento, publique:\n\n“Conheça ${product} da ${name}: ${benefit}. Veja as condições em [INSIRA O LINK].”\n\nUse prazo de encerramento só se ele for real.`,
+      local: `Publique uma foto real com esta chamada:\n\n“Está em [INSIRA A CIDADE]? Conheça ${product} da ${name}. Tire suas dúvidas em [INSIRA O WHATSAPP].”\n\nConfira se endereço e horários estão atualizados no Google Perfil da Empresa.`,
+      produto: `“Conheça ${product} da ${name}: ${benefit}. Por [INSIRA O PREÇO], com [INSIRA AS CONDIÇÕES]. ${cta}”`,
+      servico: `“Precisa de [INSIRA A NECESSIDADE]? A ${name} oferece [INSIRA O SERVIÇO], incluindo [INSIRA AS ENTREGAS]. Conte o que você precisa em [INSIRA O WHATSAPP].”`,
+      ideia: `Mostre um bastidor que o cliente não costuma ver. Fotografe uma etapa real e publique:\n\n“Antes de chegar até você, ${product} passa por [INSIRA UMA ETAPA REAL]. Esse cuidado faz parte do trabalho da ${name}.”`,
+      calendario: `Para esta semana:\n• Segunda: foto de ${product} com um benefício real.\n• Quarta: bastidor com uma etapa do trabalho.\n• Sexta: oferta com preço confirmado e convite para conversar.\n\nChamada de sexta: “Conheça as opções da ${name}: [INSIRA O LINK].”`,
+      roteiro: `Roteiro de ${seconds} segundos:\n\n0–3s: mostre ${product}. “Olha este detalhe.”\n3–${seconds - 5}s: demonstre [INSIRA UM BENEFÍCIO REAL].\n${seconds - 5}–${seconds}s: “Quer conhecer as opções? Fale com ${name}.”\n\nNa tela: [INSIRA O WHATSAPP].`,
+      stories: `Três Stories simples:\n1. Foto: “Você conhece ${product}?”\n2. Detalhe real: “[INSIRA UM BENEFÍCIO COMPROVÁVEL].”\n3. Convite: “Quer saber mais? Responda aqui.”`,
+      oferta: `“${product} por [INSIRA O PREÇO]. [INSIRA AS CONDIÇÕES REAIS]. ${cta}”`,
+      legenda: caption, whatsapp,
+    };
+    const detailed = /\b(?:complet[oa]|detalhad[oa]|aprofunde|passo a passo)\b/.test(normalize(text)) && !/\b(?:nao|sem)\b.{0,30}\b(?:complet[oa]|detalhad[oa]|passo a passo)\b/.test(normalize(text));
+    const content = detailed ? templates[type] : concise[type];
     if (!content) return null;
     const textOnly = type === 'legenda' || type === 'whatsapp' || /(?:apenas|somente|so) (?:o |a )?(?:texto|legenda|mensagem)|sem explicacao/.test(normalize(text));
-    return { type, content: textOnly ? content : `${assumptions}\n\n${content}` };
+    return { type, content: !detailed || textOnly ? content : `${assumptions}\n\n${content}` };
   }
-  const api = { welcome, modes, detect, draft };
+  const api = { welcome, modes, detect, draft, changeOfDirection, pivot, intent };
   if (typeof module !== 'undefined') module.exports = api;
   else root.DivulgaProMarketing = api;
 })(globalThis);

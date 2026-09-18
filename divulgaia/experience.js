@@ -81,6 +81,11 @@ function localConversation(text, hasImage, mode) {
     );
   const normalized = text.toLowerCase();
   const previousAnswer = state.messages.filter(message => message.role === 'assistant' && !message.entry.blocked).at(-1)?.entry;
+  const pivot = marketing.pivot(text, state.brand, previousAnswer);
+  if (pivot) {
+    state.mode = pivot.stopped ? '' : pivot.type;
+    return entryFor(text, pivot.content, pivot.type, { localTemplate: true });
+  }
   const revision = imageModes.has(mode) ? null : window.DivulguiarLocal.revise(text, previousAnswer);
   if (revision) return entryFor(text, revision === previousAnswer.content ? 'O texto já está nesse estilo. Me indique um trecho específico que você quer mudar.' : revision, previousAnswer.type);
   if (imageModes.has(mode))
@@ -301,11 +306,48 @@ function currentHistory() {
     .slice(-12);
 }
 async function requestAgent(prompt, image, mode) {
+  const submittedPrompt = prompt;
   const decision = safeAgent.review(prompt);
   if (decision === "block")
     return entryFor("", safeAgent.refusal, "ideia", { blocked: true });
   if (safeAgent.review(prompt) === 'clarify') return localConversation(prompt, !!image, mode);
-  if (!image && /legenda|campanha|stories|roteiro|whatsapp|ideias/i.test(prompt) && !/foto|imagem/i.test(prompt)) { mode = inferType(prompt); state.mode = mode; }
+  let intent = marketing.intent(prompt);
+  if (intent.kind === 'confirm') {
+    const previous = state.messages.filter(message => message.role === 'assistant').at(-1)?.entry;
+    if (!previous?.pendingRequest)
+      return entryFor(prompt, 'O que você quer que eu faça?');
+    prompt = previous.pendingRequest;
+    mode = previous.pendingMode;
+    state.mode = mode;
+    if (!image && previous.pendingImageId) image = await loadImage(previous.pendingImageId);
+    intent = { kind: 'execute' };
+    // Recheck the confirmed proposal before it can reach a local tool or provider.
+    if (safeAgent.review(prompt) !== 'allow') return localConversation(prompt, false, '');
+  }
+  if (intent.kind === 'explore') {
+    const proposal = intent.request || prompt;
+    const textTask = /legenda|roteiro|campanha|stories|whatsapp|texto/i.test(proposal);
+    const imageTask = !textTask && !intent.request && (!!image || imageModes.has(mode));
+    const proposedMode = imageTask ? (imageModes.has(mode) ? mode : 'photo') : marketing.detect(proposal, mode);
+    const label = CATEGORIES.find(category => category.id === proposedMode)?.label?.toLowerCase() || 'essa ideia';
+    return entryFor(prompt, imageTask ? 'Quer que eu aplique essa mudança na foto?' : `Quer que eu prepare uma versão de ${label} nessa direção?`, 'ideia', {
+      pendingRequest: proposal,
+      pendingMode: proposedMode,
+      pendingImageId: imageTask && image ? state.messages.filter(message => message.role === 'user').at(-1)?.imageId : null,
+    });
+  }
+  if (intent.kind === 'question' && (image || imageModes.has(mode)))
+    return entryFor(prompt, 'Posso ajustar luz, cores e enquadramento. Qual mudança você quer fazer na foto?');
+  const change = marketing.changeOfDirection(prompt);
+  if (change) {
+    // A declined photo action must not edit or reuse the last image.
+    image = null;
+    mode = change.request ? marketing.detect(change.request) : '';
+    state.mode = mode;
+  } else if (!image && /legenda|campanha|stories|roteiro|whatsapp|ideias/i.test(prompt) && !/foto|imagem/i.test(prompt)) {
+    mode = marketing.detect(prompt, mode);
+    state.mode = mode;
+  }
   if (imageModes.has(mode) || image) {
     if (!image) {
       const latestImage = state.messages.filter(message => message.role === 'assistant' && message.entry.imageId).at(-1)?.entry.imageId;
@@ -327,7 +369,7 @@ async function requestAgent(prompt, image, mode) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      prompt,
+      prompt: submittedPrompt,
       mode,
       image,
       action: imageModes.has(mode) ? mode : "chat",
@@ -344,7 +386,7 @@ async function requestAgent(prompt, image, mode) {
         "Não consegui concluir agora. Tente novamente.",
     );
   const entry = entryFor(
-    prompt,
+    submittedPrompt,
     result.text,
     imageModes.has(mode) ? "arte" : mode || inferType(prompt),
     { blocked: !!result.blocked, sources: result.sources || [] },
@@ -411,6 +453,11 @@ submitRequest = async function (override) {
     }
     await wait(state.apiReady ? 0 : 450);
     const entry = await requestAgent(prompt, image, requestMode);
+    const selector = document.querySelector('#mode');
+    if (selector && selector.value !== state.mode) {
+      selector.value = state.mode;
+      selector.dispatchEvent(new Event('change', { bubbles: true }));
+    }
     if (entry.blocked) {
       user.text = "Solicitação não exibida.";
       user.image = null;
@@ -426,11 +473,11 @@ submitRequest = async function (override) {
     for (
       let index = 0;
       index < entry.content.length;
-      index += reduced || entry.blocked ? entry.content.length : 32
+      index += reduced || entry.blocked ? entry.content.length : 4
     ) {
       message.visible = entry.content.slice(
         0,
-        index + (reduced || entry.blocked ? entry.content.length : 32),
+        index + (reduced || entry.blocked ? entry.content.length : 4),
       );
       const body = document.querySelector(
         `[data-message="${entry.id}"] .response-body`,
@@ -447,7 +494,7 @@ submitRequest = async function (override) {
             .querySelector("#thinking")
             ?.scrollIntoView({ block: "nearest", behavior: "auto" });
       }
-      await wait(reduced || entry.blocked ? 0 : 18);
+      await wait(reduced || entry.blocked ? 0 : 40);
     }
     message.complete = true;
     message.visible = entry.content;
