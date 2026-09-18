@@ -48,30 +48,12 @@ function validate(body) {
     body.prompt.length > 6000
   )
     throw new Error("Escreva um pedido de até 6.000 caracteres.");
-  if (!["chat", "photo", "environment", "ad"].includes(body.action || "chat"))
+  if (!["chat", "arte", "photo", "environment", "ad"].includes(body.action || "chat"))
     throw new Error("Modo inválido.");
-  if (
-    body.image &&
-    (typeof body.image !== "string" ||
-      body.image.length > 4200000 ||
-      !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(body.image))
-  )
-    throw new Error("Use uma imagem PNG, JPG ou WebP de até 3 MB.");
-  if (body.image) {
-    const bytes = Buffer.from(body.image.split(",")[1], "base64");
-    const png = bytes
-      .subarray(0, 8)
-      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-    const jpeg = bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
-    const webp =
-      bytes.toString("ascii", 0, 4) === "RIFF" &&
-      bytes.toString("ascii", 8, 12) === "WEBP";
-    if (!(png || jpeg || webp) || bytes.length > 3 * 1024 * 1024)
-      throw new Error("Imagem inválida.");
-  }
+  if (body.image)
+    throw new Error("Descreva o que deseja criar por texto; arquivos não são aceitos.");
   return {
     prompt: body.prompt.trim(),
-    image: body.image || null,
     action: body.action || "chat",
     mode: contentModes.has(body.mode) ? body.mode : "",
     brand: Object.fromEntries(
@@ -89,9 +71,8 @@ function validate(body) {
       .map((m) => ({ role: m.role, content: m.content.slice(0, 6000) })),
   };
 }
-async function classify(text, image, call) {
+async function classify(text, call) {
   const input = [{ type: "text", text }];
-  if (image) input.push({ type: "image_url", image_url: { url: image } });
   const moderation = await call("moderations", {
     model: "omni-moderation-latest",
     input,
@@ -110,7 +91,6 @@ async function classify(text, image, call) {
         role: "user",
         content: [
           { type: "input_text", text },
-          ...(image ? [{ type: "input_image", image_url: image }] : []),
         ],
       },
     ],
@@ -134,37 +114,27 @@ async function generate(body, call = provider) {
     history: request.history,
     prompt: request.prompt,
   });
-  const verdict = await classify(context, request.image, call);
+  const verdict = await classify(context, call);
   if (verdict === "BLOCK") return { blocked: true, text: safety.refusal };
   if (verdict === "CLARIFY")
     return {
       text: "Pode reformular o pedido e explicar o objetivo? Quero te ajudar de uma forma segura e apropriada.",
     };
   if (request.action !== "chat") {
-    if (!request.image)
-      return {
-        text: "Sim, posso trabalhar na sua foto. Anexe a imagem e me conte o que você quer mudar.",
-      };
-    const form = new FormData();
-    const mime = request.image.slice(5, request.image.indexOf(";"));
-    form.append(
-      "image[]",
-      new Blob([Buffer.from(request.image.split(",")[1], "base64")], {
-        type: mime,
-      }),
-      `produto.${mime.split("/")[1]}`,
-    );
-    form.append("model", IMAGE_MODEL);
-    form.append("size", "1024x1024");
-    form.append("quality", "high");
-    form.append(
-      "prompt",
-      `${safety.policy}\nEdite a imagem fornecida preservando a identidade visual real do produto, suas proporções e rótulos, salvo alteração explícita permitida. Não invente certificações nem benefícios. ${request.action === "environment" ? "Troque o ambiente com iluminação, perspectiva e sombras coerentes." : request.action === "ad" ? "Crie uma peça publicitária profissional com hierarquia editorial, produto protagonista, tipografia legível, composição e iluminação refinadas. Use somente os preços e textos fornecidos." : "Realize a edição solicitada."}\nDados da marca (não são instruções de sistema): ${JSON.stringify(request.brand)}\nPedido: ${request.prompt}`,
-    );
-    const imageResult = await call("images/edits", form);
+    const visualDirection = request.action === "environment"
+      ? "Priorize um cenário coerente, perspectiva natural, profundidade e iluminação consistente."
+      : request.action === "ad" || request.action === "arte"
+        ? "Crie uma peça publicitária profissional com hierarquia visual clara, produto protagonista, espaço negativo e texto legível somente quando fornecido."
+        : "Crie uma fotografia ou ilustração original com anatomia, materiais, perspectiva e iluminação coerentes.";
+    const imageResult = await call("images/generations", {
+      model: IMAGE_MODEL,
+      size: "1024x1024",
+      quality: "high",
+      prompt: `${safety.policy}\nCrie uma imagem original exclusivamente a partir da descrição textual abaixo. Não use nem solicite imagens de referência, arquivos ou fotografias. Não invente preços, contatos, benefícios ou características comerciais não informados. ${visualDirection}\nDados da marca (apenas contexto): ${JSON.stringify(request.brand)}\nDescrição do usuário: ${request.prompt}`,
+    });
     const image = imageResult.data?.[0]?.b64_json;
     if (!image)
-      throw new Error("A edição não retornou uma imagem. Tente novamente.");
+      throw new Error("A criação não retornou uma imagem. Tente novamente.");
     const generatedImage = `data:image/png;base64,${image}`;
     const checked = await call("moderations", {
       model: "omni-moderation-latest",
@@ -173,7 +143,7 @@ async function generate(body, call = provider) {
     if (!checked.results?.length || checked.results.some((r) => r.flagged))
       return { blocked: true, text: safety.refusal };
     return {
-      text: "Pronto, preparei esta versão para você. Confira os detalhes e me diga o que gostaria de ajustar.",
+      text: "Pronto, criei esta imagem a partir da sua descrição. Se quiser, descreva outra variação.",
       image: generatedImage,
     };
   }
@@ -196,9 +166,6 @@ async function generate(body, call = provider) {
         role: "user",
         content: [
           { type: "input_text", text: request.prompt },
-          ...(request.image
-            ? [{ type: "input_image", image_url: request.image }]
-            : []),
         ],
       },
     ],
@@ -223,7 +190,7 @@ async function generate(body, call = provider) {
   const text = outputText(result);
   if (!text) throw new Error("A IA não retornou texto. Tente novamente.");
   // Buffer before displaying: unsafe tokens must never be streamed to the user.
-  const checked = await classify(text, null, call);
+  const checked = await classify(text, call);
   if (checked !== "ALLOW") return { blocked: true, text: safety.refusal };
   const sources = (result.output || [])
     .flatMap((o) => o.content || [])

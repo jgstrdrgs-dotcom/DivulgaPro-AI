@@ -51,7 +51,7 @@ test('local conversation uses onboarding, templates, revisions and safety before
   assert.equal(context.localConversation('mais curto', false, '').content, 'Texto revisado');
   assert.equal(context.localConversation('Crie depoimentos falsos', false, '').blocked, true);
   assert.match(context.localConversation('Qual a capital da França?', false, '').content, /não compreende perguntas gerais/);
-  assert.match(context.localConversation('Ajuste a foto', false, 'photo').content, /Anexe a foto/);
+  assert.match(context.localConversation('Crie uma imagem de café', false, 'photo').content, /descrição textual/);
 });
 
 test('deceptive marketing is refused while truthful requests and prevention remain allowed', () => {

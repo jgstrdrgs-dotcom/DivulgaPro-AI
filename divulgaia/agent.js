@@ -1,5 +1,5 @@
 "use strict";
-// Local draft provider: no credentials, remote requests or claimed image recognition.
+// Local draft provider: no credentials, remote requests or image input handling.
 const storageKey = "divulguiar.agent.v1";
 Object.assign(state, {
   messages: [],
@@ -75,7 +75,6 @@ function newConversation() {
   persist();
   state.conversationId = null;
   state.messages = [];
-  state.pendingImage = null;
   state.draft = "";
   state.status = "idle";
   persist();
@@ -105,7 +104,6 @@ function renderConversationHistory() {
         state.messages = structuredClone(conversation.messages);
         state.mode = conversation.mode || "";
         state.draft = conversation.draft || "";
-        state.pendingImage = null;
         state.status = "complete";
         persist();
         navigate("home", "Conversa");
@@ -277,7 +275,7 @@ renderRoute = function () {
     .forEach((el) => el.setAttribute("aria-label", "Alternar favorito"));
 };
 function composer() {
-  return `<form class="composer" id="composer"><textarea id="createInput" rows="2" aria-label="O que você deseja criar?" placeholder="O que você deseja criar?" maxlength="6000">${escapeHtml(state.draft)}</textarea><div id="thumbSlot">${state.pendingImage ? `<img class="chat-image" src="${state.pendingImage}" alt="Imagem anexada"><button type="button" class="icon-button" id="removeImage" aria-label="Remover imagem">${icons.close}</button>` : ""}</div><div class="composer-tools"><button type="button" class="icon-button" id="attachBtn" aria-label="Anexar produto ou imagem" title="Anexar produto ou imagem">${icons.attach}</button><input type="file" id="attachInput" accept="image/png,image/jpeg,image/webp" hidden><select id="mode" aria-label="Tipo de conteúdo"><option value="">Tipo de conteúdo</option>${CATEGORIES.map((c) => `<option value="${c.id}" ${state.mode === c.id ? "selected" : ""}>${c.label}</option>`).join("")}</select><button class="send" id="submitCreate" ${["submitting", "transforming", "thinking", "streaming"].includes(state.status) ? "disabled" : ""}>Criar ${icons.arrow}</button></div></form>`;
+  return `<form class="composer" id="composer"><textarea id="createInput" rows="2" aria-label="Descreva o que deseja criar" placeholder="Descreva o que deseja criar por texto" maxlength="6000">${escapeHtml(state.draft)}</textarea><div class="composer-tools"><select id="mode" aria-label="Tipo de conteúdo"><option value="">Tipo de conteúdo</option>${CATEGORIES.map((c) => `<option value="${c.id}" ${state.mode === c.id ? "selected" : ""}>${c.label}</option>`).join("")}</select><button class="send" id="submitCreate" ${["submitting", "transforming", "thinking", "streaming"].includes(state.status) ? "disabled" : ""}>Criar ${icons.arrow}</button></div></form>`;
 }
 renderHome = function (main) {
   const chatting = state.messages.length > 0;
@@ -295,25 +293,6 @@ renderHome = function (main) {
       }),
   );
 };
-async function readImage(file) {
-  if (!file) return null;
-  if (
-    !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
-    file.size > 3 * 1024 * 1024
-  ) {
-    toast("Use uma imagem PNG, JPG ou WebP de até 3 MB.");
-    return null;
-  }
-  return new Promise((resolve) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = () => {
-      toast("Não foi possível ler a imagem.");
-      resolve(null);
-    };
-    r.readAsDataURL(file);
-  });
-}
 function bindComposer() {
   const input = document.querySelector("#createInput");
   input.rows = state.messages.length ? 1 : 2;
@@ -352,23 +331,8 @@ function bindComposer() {
   };
   document.querySelector("#mode").onchange = (e) =>
     (state.mode = e.target.value);
-  document.querySelector("#attachBtn").onclick = () =>
-    document.querySelector("#attachInput").click();
-  document.querySelector("#attachInput").onchange = async (e) => {
-    const image = await readImage(e.target.files[0]);
-    if (image) {
-      state.pendingImage = image;
-      renderHome(document.querySelector("#main"));
-      document.querySelector("#createInput").focus();
-    }
-  };
-  if (document.querySelector("#removeImage"))
-    document.querySelector("#removeImage").onclick = () => {
-      state.pendingImage = null;
-      renderHome(document.querySelector("#main"));
-    };
 }
-generateContent = function (text, hasImage, forcedType) {
+generateContent = function (text, forcedType) {
   if (/m[uú]sica|trilha|[aá]udio/.test(text.toLowerCase()))
     return musicResponse(text);
   const brand = state.brand.name || state.brand.company || "sua marca";
@@ -389,7 +353,7 @@ generateContent = function (text, hasImage, forcedType) {
     "Chamadas para ação":
       "“Quero conhecer as opções.”\n“Me conte os detalhes no direct.”\n“Salve para consultar depois.”",
     "Mensagem para WhatsApp": `Olá! Aqui é ${state.brand.owner || "a equipe da " + brand}. Temos uma proposta que pode interessar: ${text}. Posso enviar as opções e os valores?\nEnvie apenas a contatos que aceitaram receber mensagens da marca.`,
-    "Direção de arte": `Crie uma peça 1080 × 1350 com a foto do produto em destaque. Título: “${text}”. Reserve o rodapé para ${brand} e uma chamada para conversar. Use ${state.brand.identity || "as cores e a tipografia da marca"}. Confirme preço e condições antes de inserir na peça.`,
+    "Direção de arte": `Crie uma peça 1080 × 1350 com o produto descrito em destaque. Título: “${text}”. Reserve o rodapé para ${brand} e uma chamada para conversar. Use ${state.brand.identity || "as cores e a tipografia da marca"}. Confirme preço e condições antes de inserir na peça.`,
     "Sugestões de publicação": `Dia 1: apresentação no ${state.brand.channels || "Instagram"}. Dia 2: sequência de Stories e respostas às dúvidas. Dia 3: demonstração em vídeo. Compare conversas iniciadas e pedidos recebidos para ajustar a próxima publicação.`,
   };
   const keys = {
@@ -402,7 +366,7 @@ generateContent = function (text, hasImage, forcedType) {
     ideia: ["Estratégia da campanha", "Sugestões de publicação"],
   };
   const selected =
-    type === "campanha" || hasImage
+    type === "campanha"
       ? Object.keys(sections)
       : ["Estratégia da campanha", ...(keys[type] || keys.ideia)];
   return {
@@ -411,11 +375,7 @@ generateContent = function (text, hasImage, forcedType) {
     title: catLabel(type) + " · " + brand,
     prompt: text,
     date: new Date().toISOString(),
-    content:
-      [...new Set(selected)].map((k) => `${k}\n${sections[k]}`).join("\n\n") +
-      (hasImage
-        ? "\n\nSobre a imagem\nA foto está anexada como referência visual. Este gerador local não reconhece o conteúdo da imagem; descreva o produto no briefing para personalizar os textos."
-        : ""),
+    content: [...new Set(selected)].map((k) => `${k}\n${sections[k]}`).join("\n\n"),
   };
 };
 function drawMessages() {
@@ -424,7 +384,7 @@ function drawMessages() {
   slot.innerHTML = state.messages
     .map((m) =>
       m.role === "user"
-        ? `<div class="message user">${escapeHtml(m.text)}${m.image ? `<br><img class="chat-image" src="${m.image}" alt="Produto enviado">` : ""}</div>`
+        ? `<div class="message user">${escapeHtml(m.text)}</div>`
         : `<article class="message assistant" data-message="${m.entry.id}" aria-label="Resposta do agente"><span class="eyebrow">DivulgaPro AI · Rascunho</span><div class="response-body">${formatResponse(m.visible ?? m.entry.content)}</div>${m.complete ? actions(m.entry.id) : ""}</article>`,
     )
     .join("");
@@ -513,23 +473,17 @@ async function submitRequest(override) {
   const prompt =
     override || document.querySelector("#createInput")?.value.trim();
   if (!prompt) {
-    toast(
-      state.pendingImage
-        ? "Descreva o produto da foto para personalizar o conteúdo."
-        : "Escreva o que deseja criar.",
-    );
+    toast("Escreva o que deseja criar.");
     document.querySelector("#createInput")?.focus();
     return;
   }
-  const image = state.pendingImage;
-  state.messages.push({ role: "user", text: prompt, image });
+  state.messages.push({ role: "user", text: prompt });
   state.draft = "";
-  state.pendingImage = null;
   state.status = "thinking";
   state.route = "home";
   render();
   await wait(700);
-  const entry = generateContent(prompt, !!image, state.mode);
+  const entry = generateContent(prompt, state.mode);
   const message = { role: "assistant", entry, visible: "", complete: false };
   state.messages.push(message);
   state.status = "streaming";
@@ -671,18 +625,13 @@ renderPerfil = function (main) {
     ["channels", "Canais utilizados"],
     ["identity", "Informações da identidade da marca"],
   ];
-  main.innerHTML = `<div class="page"><div class="page-head"><div class="eyebrow">Identidade da marca</div><h2>Uma divulgação com a sua voz.</h2><p>Cadastre sua marca para personalizar os próximos rascunhos.</p></div><form class="form-card" id="brandForm"><label for="brandLogo">Logo</label>${state.brand.logo ? `<img class="chat-image" src="${state.brand.logo}" alt="Logo da marca">` : ""}<input id="brandLogo" type="file" accept="image/png,image/jpeg,image/webp">${fields.map(([k, l]) => `<label for="brand-${k}">${l}</label><input id="brand-${k}" name="${k}" maxlength="500" value="${escapeHtml(state.brand[k] || "")}">`).join("")}<button class="send" style="margin-top:20px">Salvar identidade</button></form></div>`;
-  let logo = state.brand.logo;
-  main.querySelector("#brandLogo").onchange = async (e) => {
-    logo = (await readImage(e.target.files[0])) || logo;
-  };
+  main.innerHTML = `<div class="page"><div class="page-head"><div class="eyebrow">Identidade da marca</div><h2>Uma divulgação com a sua voz.</h2><p>Descreva sua marca por texto para personalizar os próximos rascunhos e imagens.</p></div><form class="form-card" id="brandForm">${fields.map(([k, l]) => `<label for="brand-${k}">${l}</label><input id="brand-${k}" name="${k}" maxlength="500" value="${escapeHtml(state.brand[k] || "")}">`).join("")}<button class="send" style="margin-top:20px">Salvar identidade</button></form></div>`;
   main.querySelector("#brandForm").onsubmit = (e) => {
     e.preventDefault();
     fields.forEach(
       ([k]) =>
         (state.brand[k] = main.querySelector("#brand-" + k).value.trim()),
     );
-    state.brand.logo = logo;
     if (persist()) toast("Identidade salva neste navegador.");
     render();
   };

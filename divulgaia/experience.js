@@ -13,7 +13,7 @@ const removedNavigation = new Set([
 for (let i = NAV.length - 1; i >= 0; i--)
   if (removedNavigation.has(NAV[i].label)) NAV.splice(i, 1);
 Object.assign(state, { apiReady: false, firstTransition: false });
-const imageModes = new Set(["photo", "environment", "ad"]);
+const imageModes = new Set(["arte", "photo", "environment", "ad"]);
 const generatedImages = new Map();
 function imageDatabase() {
   return new Promise((resolve, reject) => {
@@ -91,7 +91,7 @@ function localConversation(text, hasImage, mode) {
   if (imageModes.has(mode))
     return entryFor(
       text,
-      "Anexe a foto que você quer editar. Posso ajustar luz e cores, girar, enquadrar e montar um anúncio no próprio navegador. Criar outro cenário realista exige um modelo de IA e não está disponível no editor local.",
+      "A criação de imagens por descrição textual precisa da IA configurada neste servidor. Descreva o produto, cenário, estilo, cores, iluminação e formato que deseja gerar.",
       "arte",
       { unavailable: true },
     );
@@ -119,7 +119,7 @@ function localConversation(text, hasImage, mode) {
     const starter = marketing.draft(text, state.brand, mode);
     if (starter) return entryFor(text, starter.content, starter.type, { localTemplate: true });
   }
-  return entryFor(text, 'Posso montar um anúncio com sua foto original, um título e o preço que você informar. Escolha “Criar anúncio”, anexe a foto e informe o título entre aspas e os dados reais da oferta. A montagem é feita no navegador, sem enviar a imagem.', 'arte');
+  return entryFor(text, 'Posso criar uma imagem original a partir da sua descrição. Informe o produto ou cena, estilo visual, cores, iluminação, formato e qualquer texto que precise aparecer.', 'arte');
 }
 generateContent = localConversation;
 // Paragraphs remain paragraphs; no artificial heading for every first sentence.
@@ -148,21 +148,6 @@ responseText = function (text) {
 const drawBase = drawMessages;
 drawMessages = function () {
   drawBase();
-  const userMessages = state.messages.filter(
-    (message) => message.role === "user",
-  );
-  document.querySelectorAll(".message.user").forEach((bubble, index) => {
-    const message = userMessages[index];
-    if (message?.imageId && !message.blocked)
-      loadImage(message.imageId).then((data) => {
-        if (!data || !bubble.isConnected) return;
-        const img = document.createElement("img");
-        img.className = "chat-image";
-        img.src = data;
-        img.alt = "Foto enviada";
-        bubble.append(document.createElement("br"), img);
-      });
-  });
   document.querySelectorAll(".assistant").forEach((article) => {
     const entry = state.messages.find(
       (m) => m.entry?.id === Number(article.dataset.message),
@@ -209,7 +194,7 @@ function appendMedia(article, entry) {
       figure.innerHTML = "";
       const img = document.createElement("img");
       img.src = data;
-      img.alt = "Imagem editada pela DivulgaPro AI";
+      img.alt = "Imagem criada pela DivulgaPro AI a partir de descrição textual";
       const download = document.createElement("a");
       download.href = data;
       download.download = "divulguiar-anuncio.png";
@@ -217,12 +202,11 @@ function appendMedia(article, entry) {
       download.textContent = "Baixar imagem";
       const reuse = document.createElement("button");
       reuse.className = "btn-outline";
-      reuse.textContent = "Ajustar esta imagem";
+      reuse.textContent = "Criar variação";
       reuse.onclick = () => {
         if (["thinking", "streaming"].includes(state.status)) return;
-        state.pendingImage = data;
-        state.mode = "photo";
-        state.draft = "";
+        state.mode = "ad";
+        state.draft = `${entry.prompt}. Crie uma nova variação original mantendo a ideia principal, com composição e detalhes visuais diferentes.`;
         state.route = "home";
         render();
         document.querySelector("#createInput")?.focus();
@@ -247,9 +231,9 @@ renderHome = function (main) {
   }
   const select = main.querySelector("#mode");
   for (const [value, label] of [
-    ["photo", "Criar com foto"],
-    ["environment", "Trocar ambiente"],
-    ["ad", "Criar anúncio"],
+    ["photo", "Imagem realista"],
+    ["environment", "Cenário descrito"],
+    ["ad", "Anúncio visual"],
   ]) {
     const option = new Option(label, value);
     select.add(option);
@@ -259,35 +243,10 @@ renderHome = function (main) {
   note.textContent = state.apiReady
     ? "Revise os detalhes antes de publicar."
     : "Modo local · Modelos editáveis, sem IA · Preencha os campos antes de publicar.";
-  const tools = main.querySelector(".composer-tools");
-  const photo = document.createElement("button");
-  photo.type = "button";
-  photo.className = "photo-mode";
-  photo.textContent = "Criar com foto";
-  photo.onclick = () => {
-    state.mode = "photo";
-    select.value = "photo";
-    main.querySelector("#attachInput").click();
-  };
-  tools.insertBefore(photo, select);
   select.onchange = () => {
     state.mode = select.value;
     updateSendLabel();
   };
-  const attach = main.querySelector("#attachInput");
-  const attachBase = attach.onchange;
-  attach.onchange = async (event) => {
-    if (event.target.files.length && !imageModes.has(state.mode))
-      state.mode = "photo";
-    await attachBase(event);
-  };
-  if (state.pendingImage) {
-    const info = document.createElement("small");
-    info.className = "photo-notice";
-    info.textContent =
-      "A foto é editada neste navegador, sem ser enviada a um serviço externo.";
-    main.querySelector("#thumbSlot").append(info);
-  }
   updateSendLabel();
 };
 function updateSendLabel() {
@@ -305,12 +264,12 @@ function currentHistory() {
     }))
     .slice(-12);
 }
-async function requestAgent(prompt, image, mode) {
+async function requestAgent(prompt, mode) {
   const submittedPrompt = prompt;
   const decision = safeAgent.review(prompt);
   if (decision === "block")
     return entryFor("", safeAgent.refusal, "ideia", { blocked: true });
-  if (safeAgent.review(prompt) === 'clarify') return localConversation(prompt, !!image, mode);
+  if (safeAgent.review(prompt) === 'clarify') return localConversation(prompt, false, mode);
   let intent = marketing.intent(prompt);
   if (intent.kind === 'confirm') {
     const previous = state.messages.filter(message => message.role === 'assistant').at(-1)?.entry;
@@ -319,7 +278,6 @@ async function requestAgent(prompt, image, mode) {
     prompt = previous.pendingRequest;
     mode = previous.pendingMode;
     state.mode = mode;
-    if (!image && previous.pendingImageId) image = await loadImage(previous.pendingImageId);
     intent = { kind: 'execute' };
     // Recheck the confirmed proposal before it can reach a local tool or provider.
     if (safeAgent.review(prompt) !== 'allow') return localConversation(prompt, false, '');
@@ -327,39 +285,27 @@ async function requestAgent(prompt, image, mode) {
   if (intent.kind === 'explore') {
     const proposal = intent.request || prompt;
     const textTask = /legenda|roteiro|campanha|stories|whatsapp|texto/i.test(proposal);
-    const imageTask = !textTask && !intent.request && (!!image || imageModes.has(mode));
+    const imageTask = !textTask && !intent.request && imageModes.has(mode);
     const proposedMode = imageTask ? (imageModes.has(mode) ? mode : 'photo') : marketing.detect(proposal, mode);
     const label = CATEGORIES.find(category => category.id === proposedMode)?.label?.toLowerCase() || 'essa ideia';
-    return entryFor(prompt, imageTask ? 'Quer que eu aplique essa mudança na foto?' : `Quer que eu prepare uma versão de ${label} nessa direção?`, 'ideia', {
+    return entryFor(prompt, imageTask ? 'Quer que eu crie essa imagem a partir da descrição?' : `Quer que eu prepare uma versão de ${label} nessa direção?`, 'ideia', {
       pendingRequest: proposal,
       pendingMode: proposedMode,
-      pendingImageId: imageTask && image ? state.messages.filter(message => message.role === 'user').at(-1)?.imageId : null,
     });
   }
-  if (intent.kind === 'question' && (image || imageModes.has(mode)))
-    return entryFor(prompt, 'Posso ajustar luz, cores e enquadramento. Qual mudança você quer fazer na foto?');
+  if (intent.kind === 'question' && imageModes.has(mode))
+    return entryFor(prompt, 'Descreva a imagem que deseja criar: elemento principal, cenário, estilo, cores, iluminação, enquadramento e formato.');
   const change = marketing.changeOfDirection(prompt);
   if (change) {
-    // A declined photo action must not edit or reuse the last image.
-    image = null;
     mode = change.request ? marketing.detect(change.request) : '';
     state.mode = mode;
-  } else if (!image && /legenda|campanha|stories|roteiro|whatsapp|ideias/i.test(prompt) && !/foto|imagem/i.test(prompt)) {
+  } else if (/legenda|campanha|stories|roteiro|whatsapp|ideias/i.test(prompt) && !/foto|imagem/i.test(prompt)) {
     mode = marketing.detect(prompt, mode);
     state.mode = mode;
   }
-  if (imageModes.has(mode) || image) {
-    if (!image) {
-      const latestImage = state.messages.filter(message => message.role === 'assistant' && message.entry.imageId).at(-1)?.entry.imageId;
-      if (latestImage) image = await loadImage(latestImage);
-    }
-    if (!image) return localConversation(prompt, false, 'photo');
-    const edited = await window.DivulguiarLocal.editPhoto(image, prompt, mode, state.brand);
-    const entry = entryFor(prompt, edited.text, 'arte', {localPhoto: true});
-    if (edited.image) { entry.imageId = crypto.randomUUID(); await storeImage(entry.imageId, edited.image); }
-    return entry;
-  }
-  if (!state.apiReady) return localConversation(prompt, !!image, mode);
+  if (imageModes.has(mode) && !state.apiReady)
+    return localConversation(prompt, false, mode);
+  if (!state.apiReady) return localConversation(prompt, false, mode);
   const brand = Object.fromEntries(
     ["name", "company", "segment", "tone", "identity", "channels"].map(
       (key) => [key, state.brand[key] || ""],
@@ -371,7 +317,6 @@ async function requestAgent(prompt, image, mode) {
     body: JSON.stringify({
       prompt: submittedPrompt,
       mode,
-      image,
       action: imageModes.has(mode) ? mode : "chat",
       brand,
       history: currentHistory(),
@@ -405,14 +350,9 @@ submitRequest = async function (override) {
     ""
   ).trim();
   if (!prompt) {
-    toast(
-      state.pendingImage
-        ? "Me conte o que você quer mudar na foto."
-        : "Escreva o que deseja criar.",
-    );
+    toast("Escreva o que deseja criar.");
     return;
   }
-  const image = state.pendingImage;
   const requestMode = state.mode;
   if (window.prepareEditorialSubmission) await window.prepareEditorialSubmission();
   if (state.messages.at(-1)?.failed && state.messages.at(-1).text === prompt)
@@ -421,7 +361,6 @@ submitRequest = async function (override) {
   const user = { role: "user", text: prompt };
   state.messages.push(user);
   state.draft = "";
-  state.pendingImage = null;
   state.status = "thinking";
   state.route = "home";
   state.firstTransition = first;
@@ -431,7 +370,6 @@ submitRequest = async function (override) {
     const input = document.querySelector("#createInput");
     input.value = "";
     input.style.height = "auto";
-    document.querySelector("#thumbSlot").innerHTML = "";
     document.querySelector("#thinking").hidden = false;
     document.querySelector("#submitCreate").disabled = true;
   }
@@ -446,13 +384,8 @@ submitRequest = async function (override) {
         : "smooth",
     });
   try {
-    if (image) {
-      user.imageId = crypto.randomUUID();
-      await storeImage(user.imageId, image);
-      drawMessages();
-    }
     await wait(state.apiReady ? 0 : 450);
-    const entry = await requestAgent(prompt, image, requestMode);
+    const entry = await requestAgent(prompt, requestMode);
     const selector = document.querySelector('#mode');
     if (selector && selector.value !== state.mode) {
       selector.value = state.mode;
@@ -460,8 +393,6 @@ submitRequest = async function (override) {
     }
     if (entry.blocked) {
       user.text = "Solicitação não exibida.";
-      user.image = null;
-      user.imageId = null;
       user.blocked = true;
       entry.prompt = "";
     }
@@ -507,7 +438,6 @@ submitRequest = async function (override) {
     state.status = "error";
     user.failed = true;
     state.draft = prompt;
-    state.pendingImage = image;
     persist();
     if (state.route === "home") {
       drawMessages();

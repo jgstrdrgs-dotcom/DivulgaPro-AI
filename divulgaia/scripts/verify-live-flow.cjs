@@ -18,7 +18,7 @@ const server = createServer({
     }
     if (endpoint === "moderations")
       return { results: [{ flagged: false, categories: {} }] };
-    if (endpoint === "images/edits") {
+    if (endpoint === "images/generations") {
       imageCalls++;
       return { data: [{ b64_json: png }] };
     }
@@ -45,20 +45,12 @@ const server = createServer({
     await page.waitForFunction(() => state.apiReady);
     await page.locator("#mode").selectOption("ad");
     await page
-      .locator("#attachInput")
-      .setInputFiles({
-        name: "produto.png",
-        mimeType: "image/png",
-        buffer: Buffer.from(png, "base64"),
-      });
-    await page.waitForSelector("#thumbSlot .chat-image");
-    await page
       .locator("#createInput")
-      .fill('Crie um anúncio com título "Café especial"');
+      .fill('Crie uma imagem publicitária de café especial, fundo claro e título "Café especial"');
     await page.locator("#createInput").press("Enter");
     await page.waitForFunction(() => state.status === "complete");
     await page.waitForSelector(".generated-result img");
-    assert.equal(imageCalls, 0);
+    assert.equal(imageCalls, 1);
     const download = page.waitForEvent("download");
     await page.getByText("Baixar imagem", { exact: true }).click();
     assert.equal(
@@ -67,15 +59,15 @@ const server = createServer({
     );
     await page.reload();
     await page.waitForSelector(".generated-result img");
-    await page.getByText("Ajustar esta imagem", { exact: true }).click();
-    await page.waitForSelector("#thumbSlot .chat-image");
-    assert.equal(await page.locator("#mode").inputValue(), "photo");
-    await page.locator("#createInput").fill("Clareie e aumente o contraste");
+    await page.getByText("Criar variação", { exact: true }).click();
+    assert.equal(await page.locator("#mode").inputValue(), "ad");
+    assert.equal(await page.locator("#attachInput").count(), 0);
+    await page.locator("#createInput").fill("Crie uma variação com composição editorial");
     await page.locator("#createInput").press("Enter");
     await page.waitForFunction(
       () => state.status === "complete" && state.messages.length === 4,
     );
-    assert.equal(imageCalls, 0);
+    assert.equal(imageCalls, 2);
     await page.locator("#mode").selectOption("");
     failNext = true;
     await page.locator("#createInput").fill("Crie uma legenda");

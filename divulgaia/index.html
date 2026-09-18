@@ -292,9 +292,6 @@ body::before{
   background:var(--straw-2); transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 .f-field input[type=text]:focus{outline:none; border-color:var(--orange); box-shadow:0 0 0 3px rgba(255,104,44,.14); background:#fff;}
-.logo-row{display:flex; align-items:center; gap:14px;}
-.logo-preview{width:56px; height:56px; border-radius:10px; background:var(--straw-2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; flex:none;}
-.logo-preview img{width:100%; height:100%; object-fit:cover;}
 .btn-black{
   border:none; background:var(--black); color:#fff; font-size:12.5px; font-weight:700; letter-spacing:.05em;
   padding:11px 22px; border-radius:8px; cursor:pointer; transition:background-color .2s var(--ease), transform .2s var(--ease);
@@ -342,11 +339,10 @@ body::before{
 const state = {
   route: 'home',
   drawerOpen: false,
-  brand: { name: '', logo: '' },
+  brand: { name: '' },
   library: [],
   favorites: new Set(),
-  nextId: 1,
-  pendingImage: null
+  nextId: 1
 };
 
 const CATEGORIES = [
@@ -438,7 +434,7 @@ function inferType(text){
   if(/arte|design|post/.test(t)) return 'arte';
   return 'ideia';
 }
-function generateContent(text, hasImage, forcedType){
+function generateContent(text, forcedType){
   const type = forcedType || inferType(text);
   const brand = state.brand.name || 'sua marca';
   const bodies = {
@@ -460,7 +456,7 @@ function generateContent(text, hasImage, forcedType){
     id: state.nextId++,
     type,
     title: titles[type],
-    content: bodies[type] + (hasImage ? '\n\n(Imagem anexada considerada na criação.)' : ''),
+    content: bodies[type],
     date: new Date().toISOString(),
     prompt: text
   };
@@ -546,9 +542,6 @@ function renderHome(main){
         <div class="cf-tag">CRIAR</div>
         <div class="cf-input-wrap">
           <input type="text" id="createInput" placeholder="Descreva o que você deseja criar" autocomplete="off">
-          <div id="thumbSlot"></div>
-          <button class="cf-attach" id="attachBtn" type="button" aria-label="Anexar imagem">${icons.attach}</button>
-          <input type="file" id="attachInput" accept="image/*" class="hidden">
         </div>
         <button class="cf-submit" id="submitCreate" type="button">CRIAR ${icons.arrow}</button>
       </div>
@@ -560,32 +553,11 @@ function renderHome(main){
 
   const field = document.getElementById('createField');
   const input = document.getElementById('createInput');
-  const attachBtn = document.getElementById('attachBtn');
-  const attachInput = document.getElementById('attachInput');
-  const thumbSlot = document.getElementById('thumbSlot');
   const submitBtn = document.getElementById('submitCreate');
 
   input.addEventListener('focus', () => field.classList.add('focused'));
   input.addEventListener('blur', () => field.classList.remove('focused'));
   input.addEventListener('keydown', e => { if(e.key === 'Enter') doCreate(); });
-
-  attachBtn.addEventListener('click', () => attachInput.click());
-  attachInput.addEventListener('change', () => {
-    const file = attachInput.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      state.pendingImage = reader.result;
-      thumbSlot.innerHTML = `<div class="cf-thumb"><img src="${state.pendingImage}"><button type="button" id="removeThumb" aria-label="Remover imagem">${icons.close}</button></div>`;
-      document.getElementById('removeThumb').addEventListener('click', (e) => {
-        e.stopPropagation();
-        state.pendingImage = null;
-        attachInput.value = '';
-        thumbSlot.innerHTML = '';
-      });
-    };
-    reader.readAsDataURL(file);
-  });
 
   main.querySelectorAll('[data-chip]').forEach(chip => {
     chip.addEventListener('click', () => { input.value = chip.dataset.chip + ': '; input.focus(); });
@@ -595,15 +567,13 @@ function renderHome(main){
 
   function doCreate(){
     const text = input.value.trim();
-    if(!text && !state.pendingImage){
+    if(!text){
       input.focus();
       toast('Descreva o que você deseja criar');
       return;
     }
-    const entry = generateContent(text || 'Conteúdo a partir de imagem', !!state.pendingImage);
-    entry.image = state.pendingImage;
+    const entry = generateContent(text);
     state.library.unshift(entry);
-    state.pendingImage = null;
     state.lastResult = entry;
     toast('Conteúdo criado com sucesso');
     state.route = 'resultado';
@@ -785,14 +755,7 @@ function renderPerfil(main){
         <p>Esse nome aparece no cabeçalho e na saudação de boas-vindas.</p>
       </div>
       <div class="form-card">
-        <div class="f-field">
-          <label>Logo</label>
-          <div class="logo-row">
-            <div class="logo-preview" id="logoPreview">${state.brand.logo ? `<img src="${state.brand.logo}">` : ''}</div>
-            <button class="btn-outline" id="logoBtn" type="button">Enviar logo</button>
-            <input type="file" id="logoInput" accept="image/*" class="hidden">
-          </div>
-        </div>
+        <p class="muted">Descreva a identidade visual da marca por texto no campo de briefing.</p>
         <div class="f-field">
           <label for="brandInput">Nome da marca ou empresa</label>
           <input type="text" id="brandInput" placeholder="Ex.: Studio Bela Barbearia" value="${escapeHtml(state.brand.name)}">
@@ -801,17 +764,6 @@ function renderPerfil(main){
       </div>
     </div>
   `;
-  document.getElementById('logoBtn').addEventListener('click', () => document.getElementById('logoInput').click());
-  document.getElementById('logoInput').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      state.brand.logo = reader.result;
-      document.getElementById('logoPreview').innerHTML = `<img src="${state.brand.logo}">`;
-    };
-    reader.readAsDataURL(file);
-  });
   document.getElementById('saveBrand').addEventListener('click', () => {
     state.brand.name = document.getElementById('brandInput').value.trim();
     toast('Perfil atualizado');

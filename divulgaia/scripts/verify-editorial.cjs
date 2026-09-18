@@ -132,27 +132,19 @@ const server = createServer();
     await page.locator('.recent-card summary').click();
     await page.locator('[data-conversation]').first().click();
     assert.equal(await page.locator('.message.user').count(), 3);
-    // Exercise attachment selection, local editing, and persistent image media.
+    // Image creation uses only a written description; no upload controls are exposed.
     await page.locator('.recent-card summary').click();
     await page.locator('.new-conversation').click();
-    const photo = await page.evaluate(() => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 120; canvas.height = 80;
-      canvas.getContext('2d').fillRect(0, 0, 120, 80);
-      return canvas.toDataURL().split(',')[1];
-    });
-    await page.locator('#attachInput').setInputFiles({ name: 'produto.png', mimeType: 'image/png', buffer: Buffer.from(photo, 'base64') });
-    assert(await page.locator('#thumbSlot img').isVisible());
+    assert.equal(await page.locator('#attachInput').count(), 0);
+    assert.equal(await page.locator('input[type="file"]').count(), 0);
     await page.locator('.mode-picker summary').click();
     await page.locator('[data-mode="photo"]').click();
     assert.equal(await page.locator('#mode').inputValue(), 'photo');
-    await page.locator('#createInput').fill('Clareie a foto');
+    await page.locator('#createInput').fill('Crie uma imagem de café em estúdio, com fundo claro e iluminação suave');
     await page.locator('#createInput').press('Enter');
     await page.waitForFunction(() => state.status === 'complete');
-    await page.locator('.generated-result img').waitFor();
-    assert.equal(await page.locator('.message.user img').count(), 1);
+    assert.equal(await page.locator('.message.user img').count(), 0);
     await page.reload();
-    await page.locator('.generated-result img').waitFor();
     await page.locator('.recent-card summary').click();
     await page.locator('[data-conversation]').last().click();
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: url });

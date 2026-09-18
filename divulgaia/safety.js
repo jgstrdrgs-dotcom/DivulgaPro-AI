@@ -1,7 +1,7 @@
 /* Shared preliminary checks; server-side semantic and image moderation is mandatory for AI. */
 (function (root) {
   const refusal =
-    "Desculpe, não posso ajudar com esse tipo de conteúdo. Posso ajudar com uma alternativa segura, educativa e apropriada.";
+    "Não posso criar essa imagem porque o pedido fere as políticas de segurança e privacidade do site.";
   function review(text) {
     const normalized = String(text)
       .normalize("NFD")

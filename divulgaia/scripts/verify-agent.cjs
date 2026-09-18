@@ -166,18 +166,9 @@ const server = http.createServer((req, res) => {
     if (await page.locator(".drawer").evaluate(el => el.inert)) await page.locator("#menuBtn").click();
     await page.locator(".recent-card summary").click();
     await page.getByRole("button", { name: "Nova conversa", exact: true }).click();
-    await page.locator("#attachInput").setInputFiles({
-      name: "produto.png",
-      mimeType: "image/png",
-      buffer: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jD1sAAAAASUVORK5CYII=",
-        "base64",
-      ),
-    });
-    await page.waitForSelector(".chat-image");
-    await page.locator("#removeImage").click();
+    assert.equal(await page.locator("#attachInput").count(), 0);
+    assert.equal(await page.locator('input[type="file"]').count(), 0);
     await page.locator("#mode").selectOption("");
-    assert.equal(await page.locator(".chat-image").count(), 0);
     await page.screenshot({
       path: path.join(output, "mobile.png"),
       fullPage: true,
@@ -282,7 +273,7 @@ const server = http.createServer((req, res) => {
     );
     assert.equal(
       await page.locator(".assistant .response-body").last().innerText(),
-      "Desculpe, não posso ajudar com esse tipo de conteúdo. Posso ajudar com uma alternativa segura, educativa e apropriada.",
+      "Não posso criar essa imagem porque o pedido fere as políticas de segurança e privacidade do site.",
     );
     assert.equal(
       await page
@@ -303,11 +294,11 @@ const server = http.createServer((req, res) => {
     );
     assert.match(
       await page.locator(".assistant .response-body").last().innerText(),
-      /Anexe a foto/,
+      /descrição textual/,
     );
     assert.equal(errors.length, 0, errors.join("\n"));
     console.log(
-      "PASS: desktop, 320/360/390/430px, drawer, keyboard, brand, chat, streaming, editing, persistence, follow-up, calculator, attachments, reduced motion; no console errors.",
+      "PASS: desktop, 320/360/390/430px, drawer, keyboard, brand, chat, streaming, editing, persistence, follow-up, calculator, text-only image flow, reduced motion; no console errors.",
     );
   } finally {
     await browser.close();

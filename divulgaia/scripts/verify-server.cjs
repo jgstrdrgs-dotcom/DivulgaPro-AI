@@ -102,11 +102,11 @@ test("moderated chat preserves context, requests current sources and moderates o
     else delete process.env.OPENAI_API_KEY;
   }
 });
-test("image edit sends actual file, checks result; unsafe output never reaches client", async () => {
+test("image generation uses only the text description; unsafe output never reaches client", async () => {
   const original = process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY = "test-placeholder";
   try {
-    let edits = 0,
+    let generations = 0,
       moderations = 0;
     const fake = async (endpoint, body) => {
       if (endpoint === "moderations") {
@@ -114,22 +114,21 @@ test("image edit sends actual file, checks result; unsafe output never reaches c
         return { results: [{ flagged: false }] };
       }
       if (endpoint === "responses") return textResponse("ALLOW");
-      edits++;
-      assert(body instanceof FormData);
-      assert.equal(body.get("image[]").type, "image/png");
-      assert.match(body.get("prompt"), /Troque o ambiente/);
+      generations++;
+      assert.equal(endpoint, "images/generations");
+      assert.equal(body.model, "gpt-image-1");
+      assert.match(body.prompt, /mesa de madeira/);
       return { data: [{ b64_json: png }] };
     };
     const result = await generate(
       {
         prompt: "Coloque em uma mesa de madeira",
         action: "environment",
-        image: "data:image/png;base64," + png,
       },
       fake,
     );
     assert.match(result.image, /^data:image\/png;base64,/);
-    assert.equal(edits, 1);
+    assert.equal(generations, 1);
     assert.equal(moderations, 2);
     let generated = false;
     const blocked = await generate(
