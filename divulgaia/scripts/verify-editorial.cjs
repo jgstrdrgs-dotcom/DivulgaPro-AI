@@ -14,7 +14,7 @@ const server = createServer();
     const url = `http://127.0.0.1:${server.address().port}`;
     await page.goto(url);
     await page.evaluate(() => document.fonts.ready);
-    assert.equal(await page.locator('.drawer-head .mark').innerText(), 'divulguia.');
+    assert.equal(await page.locator('.drawer-head .mark').innerText(), 'DivulgaPro AI');
     assert.equal(await page.locator('.suggestion').count(), 4);
     assert(await page.locator('#submitCreate').isDisabled());
     const composition = await page.evaluate(() => {

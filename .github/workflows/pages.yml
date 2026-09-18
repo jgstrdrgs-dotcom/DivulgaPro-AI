@@ -29,6 +29,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Verify assistant and server
+        run: npm run test:core
+
       - name: Build static site
         run: npm run build
 

@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Divulguiar — Crie a divulgação da sua marca</title>
+<title>DivulgaPro AI — Estratégias, conteúdo e divulgação</title>
+<meta name="description" content="Planeje a divulgação da sua marca com a DivulgaPro AI. Estratégias, campanhas, roteiros, conteúdo e mensagens de vendas em português.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff682c'/%3E%3Ctext x='9' y='24' font-family='sans-serif' font-size='24' fill='%2327251e'%3Ed%3C/text%3E%3C/svg%3E">
 <style>
 :root{
@@ -328,7 +329,7 @@ body::before{
 @keyframes toast-in{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
 </style>
 <link rel="stylesheet" href="agent.css?v=3">
-<link rel="stylesheet" href="premium.css?v=20260917-composer">
+<link rel="stylesheet" href="premium.css?v=20260918-divulgapro">
 </head>
 <body>
 <div id="app"></div>
@@ -365,8 +366,8 @@ const TEMPLATES = [
   { type:'stories', title:'Sequência de 3 stories', desc:'Enredo curto para engajar em stories do Instagram.' },
   { type:'legenda', title:'Legenda com chamada para ação', desc:'Texto pronto com gancho, corpo e CTA.' },
   { type:'roteiro', title:'Roteiro de vídeo de 30s', desc:'Estrutura para vídeos curtos de divulgação.' },
-  { type:'whatsapp', title:'Mensagem de oferta no WhatsApp', desc:'Texto direto para disparo em lista de transmissão.' },
-  { type:'oferta', title:'Oferta relâmpago', desc:'Modelo de promoção com senso de urgência.' }
+  { type:'whatsapp', title:'Mensagem de oferta no WhatsApp', desc:'Mensagem para contatos que aceitaram receber novidades.' },
+  { type:'oferta', title:'Oferta relâmpago', desc:'Modelo de promoção com prazo e condições reais.' }
 ];
 
 const icons = {
@@ -414,10 +415,10 @@ function toast(msg){
   setTimeout(() => t.remove(), 2800);
 }
 function welcomeText(){
-  return state.brand.name ? `Bem-vindo, ${escapeHtml(state.brand.name)}` : 'Bem-vindo ao Divulguiar';
+  return state.brand.name ? `Bem-vindo, ${escapeHtml(state.brand.name)}` : 'Bem-vindo à DivulgaPro AI';
 }
 function headerName(){
-  return state.brand.name ? escapeHtml(state.brand.name) : 'Divulguiar';
+  return state.brand.name ? escapeHtml(state.brand.name) : 'DivulgaPro AI';
 }
 function formatDate(d){
   return new Date(d).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -474,7 +475,7 @@ function render(){
     <div class="drawer-backdrop ${state.drawerOpen ? 'open' : ''}" id="drawerBackdrop"></div>
     <aside class="drawer ${state.drawerOpen ? 'open' : ''}" id="drawer">
       <div class="drawer-head">
-        <span class="mark">Divulguiar</span>
+        <span class="mark">DivulgaPro AI</span>
         <button class="drawer-close" id="drawerClose" aria-label="Fechar menu">${icons.close}</button>
       </div>
       <nav class="drawer-nav">
@@ -689,7 +690,7 @@ function renderBiblioteca(main){
       <div class="page-head">
         <div class="eyebrow">Biblioteca</div>
         <h2>Campanhas, artes, textos e roteiros</h2>
-        <p>Tudo o que você já criou com o Divulguiar, organizado por categoria.</p>
+        <p>Tudo o que você já criou com a DivulgaPro AI, organizado por categoria.</p>
       </div>
       <div class="chip-row">
         <button class="chip ${!active ? 'active' : ''}" data-cat="">Tudo</button>
@@ -826,7 +827,7 @@ function renderConfiguracoes(main){
     <div class="page">
       <div class="page-head">
         <div class="eyebrow">Configurações</div>
-        <h2>Preferências do Divulguiar</h2>
+        <h2>Preferências da DivulgaPro AI</h2>
       </div>
       <div class="form-card">
         <div class="f-field">
@@ -850,10 +851,11 @@ function renderConfiguracoes(main){
 }
 
 </script>
-<script src="safety.js?v=3"></script>
-<script src="agent.js?v=20260917-editorial"></script>
+<script src="safety.js?v=20260918-divulgapro"></script>
+<script src="agent.js?v=20260918-divulgapro"></script>
 <script src="local-tools.js?v=4"></script>
-<script src="experience.js?v=20260917-editorial"></script>
-<script src="premium.js?v=20260917-composer"></script>
+<script src="marketing.js?v=20260918-divulgapro"></script>
+<script src="experience.js?v=20260918-divulgapro"></script>
+<script src="premium.js?v=20260918-divulgapro"></script>
 </body>
 </html>

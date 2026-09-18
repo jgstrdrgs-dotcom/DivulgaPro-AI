@@ -156,6 +156,8 @@ test("HTTP serves application, hides secrets, validates origin and fails closed"
     assert.match(await (await fetch(base)).text(), /name="divulguiar-api"/);
     assert.equal((await fetch(base + "/.env")).status, 404);
     assert.equal((await fetch(base + "/server.cjs")).status, 404);
+    assert.equal((await fetch(base + "/divulgapro-policy.md")).status, 404);
+    assert.match(await (await fetch(base + "/marketing.js")).text(), /DivulgaProMarketing/);
     assert.equal(
       (
         await fetch(base + "/api/agent", {

@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node server.cjs",
     "build": "node divulgaia/scripts/build.cjs",
-    "test": "node divulgaia/scripts/verify-editorial.cjs"
+    "test": "node divulgaia/scripts/verify-editorial.cjs",
+    "test:core": "node --test divulgaia/scripts/verify-server.cjs divulgaia/scripts/verify-marketing.cjs"
   }
 }

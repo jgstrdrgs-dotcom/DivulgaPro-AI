@@ -1,6 +1,9 @@
 "use strict";
 // Keep the existing brand, library and navigation; replace only the chat experience.
 const safeAgent = window.DivulguiarSafety;
+const marketing = window.DivulgaProMarketing;
+for (const mode of marketing.modes)
+  if (!CATEGORIES.some(category => category.id === mode.id)) CATEGORIES.push(mode);
 const removedNavigation = new Set([
   "Criar campanha",
   "Legendas",
@@ -60,7 +63,7 @@ function entryFor(text, content, type = "ideia", extra = {}) {
     title:
       catLabel(type) +
       " · " +
-      (state.brand.name || state.brand.company || "Divulguiar"),
+      (state.brand.name || state.brand.company || "DivulgaPro AI"),
     prompt: text,
     content,
     date: new Date().toISOString(),
@@ -87,10 +90,10 @@ function localConversation(text, hasImage, mode) {
       "arte",
       { unavailable: true },
     );
-  if (/^(oi|ol[aá]|bom dia|boa tarde|boa noite|e a[ií])[!?.\s]*$/i.test(text))
+  if (/^(oi|ol[aá]|bom dia|boa tarde|boa noite|e a[ií]|me ajude|preciso de ajuda|quero divulgar)[!?.\s]*$/i.test(text.trim()))
     return entryFor(
       text,
-      "Oi! Posso te ajudar com uma legenda, uma campanha ou ideias para divulgar sua marca. O que você quer criar hoje?",
+      marketing.welcome,
     );
   if (/^(obrigad[oa]|valeu|perfeito|legal)[!?.\s]*$/i.test(text))
     return entryFor(
@@ -105,61 +108,13 @@ function localConversation(text, hasImage, mode) {
     );
     return result;
   }
-  const previous = state.messages
-    .filter((m) => m.role === "user" && !m.blocked)
-    .slice(0, -1)
-    .map((m) => m.text)
-    .join(" ");
-  const context =
-    `${previous} ${text} ${state.brand.segment || ""}`.toLowerCase();
-  const food = /p[aã]o|padaria|caf[eé]|comida|restaurante|doce/.test(context);
-  const fashion = /roupa|moda|look|vestido|boutique/.test(context);
-  const brand = state.brand.name || state.brand.company || "nossa loja";
-  const short = /mais curt|resum|menos texto|enxut/.test(normalized);
-  const explicitType = inferType(text);
-  let type = explicitType !== 'ideia' ? explicitType : mode || explicitType;
-  if (/whats/.test(normalized)) type = "whatsapp";
-  else if (/legenda/.test(normalized)) type = "legenda";
-  else if (short)
-    type =
-      state.messages.filter((m) => m.role === "assistant").at(-1)?.entry.type ||
-      type;
-  const hook = food
-    ? "Dá para sentir o carinho em cada detalhe."
-    : fashion
-      ? "O detalhe que muda o seu look."
-      : "Tem coisa que você só entende quando vê de perto.";
-  const benefit = food
-    ? "Uma pausa gostosa começa com uma boa escolha."
-    : fashion
-      ? "Inspire-se, descubra as combinações e encontre o que tem a sua cara."
-      : "Conheça os detalhes e encontre a opção que combina com você.";
-  if (short)
-    return entryFor(
-      text,
-      `Claro, deixei mais direto:\n\n${hook} ${benefit} Me chama para conhecer as opções.`,
-      type,
-    );
-  if (/gatilho|viral|virais|gancho/.test(normalized))
-    return entryFor(
-      text,
-      `Sim, posso te ajudar a criar uma abertura que desperte curiosidade. Eu testaria estes três caminhos:\n\n• Curiosidade: “Você percebeu esse detalhe?” Mostre o detalhe logo depois, sem enrolar.\n• Demonstração: “Olha o que muda quando você faz assim.” Grave o processo e um resultado real.\n• Identificação: “Se isso também acontece com você, vem ver.” Apresente uma situação comum do seu cliente e mostre como o produto pode ajudar.\n\nEu começaria pelo ${food ? "processo de preparo, com som ambiente e um close no resultado" : fashion ? "antes e depois de uma combinação, mantendo a mesma luz e enquadramento" : "produto em uso, com um benefício que dê para ver"}. Abra nos primeiros segundos, entregue o que prometeu e termine com um convite simples.\n\nEsses são princípios de criação, não uma garantia de viralizar nem tendências verificadas hoje. Para saber o que está em alta, preciso da busca online ativada.\n\nReferência: https://ads.tiktok.com/business/en/guides/what-is-ad-creative-guide`,
-      "ideia",
-    );
-  const responses = {
-    legenda: `Sim, preparei uma legenda com um tom mais próximo:\n\n${hook}\n\n${benefit} Aqui na ${brand}, quero te ajudar a escolher com calma e tirar suas dúvidas.\n\nMe chama no direct e eu te mostro as opções.\n\nQuer que eu deixe mais descontraída ou mais direta para venda?`,
-    whatsapp: `Claro. Eu mandaria uma mensagem curta, que abre espaço para a pessoa responder:\n\nOi! Tudo bem? Tenho uma novidade aqui na ${brand} que pode combinar com você. Quer que eu te mande as opções e os detalhes?\n\nSe a pessoa demonstrar interesse, aí eu apresentaria preço e condições, sem despejar tudo na primeira mensagem.`,
-    stories: `Sim, eu faria uma sequência de 5 Stories:\n\n1. Abra com “${hook}” e mostre um detalhe do produto.\n2. Mostre o ${food ? "preparo" : fashion ? "look em movimento" : "produto em uso"}, sem esconder os detalhes.\n3. Dê uma dica que ajude a escolher.\n4. Abra uma caixinha: “O que você quer saber antes de escolher?”\n5. Convide: “Quer conhecer as opções? Me chama aqui.”\n\nEu manteria uma ideia por tela, com texto curto e fácil de ler.`,
-    roteiro: `Sim. Eu começaria pelo resultado para prender a atenção:\n\n0–3s: mostre ${food ? "um close do produto pronto" : fashion ? "o look completo" : "o produto em uso"} e diga “Olha esse detalhe”.\n3–12s: mostre como ele é feito ou usado, com cortes simples.\n12–22s: destaque um benefício real, sem exageros.\n22–30s: encerre com “Quer conhecer as opções? Me chama no direct”.\n\nEu usaria legendas na tela e deixaria a música abaixo da voz.`,
-    campanha: `Sim, eu começaria com uma campanha simples, com uma ideia central: mostrar por que vale a pena conhecer ${brand}.\n\nPrimeiro, publicaria uma demonstração real do produto. A abertura pode ser “${hook}”. Depois, usaria os Stories para responder às dúvidas que chegarem. Por fim, convidaria quem demonstrou interesse para conversar.\n\nPara o texto principal, eu usaria:\n“${benefit} Quer conhecer as opções? Fale com a gente e veja os detalhes.”\n\nEu compararia duas aberturas e observaria qual gera mais conversas, não só curtidas. Qual produto e condição de venda você quer destacar?`,
-    arte: `Posso montar um anúncio com sua foto original, um título e o preço que você informar. Escolha “Criar anúncio”, anexe a foto e escreva, por exemplo: título "Conheça a novidade", R$ 49,90. A montagem é feita no navegador, sem enviar a imagem.`,
-    oferta: `Sim, posso montar uma oferta clara. Eu destacaria o benefício, o preço confirmado e como comprar.\n\nVocê já definiu o valor e as condições? Com isso, eu consigo escrever uma chamada sem inventar desconto ou prazo.`,
-    ideia: `Posso te ajudar. Eu começaria por uma demonstração ${food ? "do preparo" : fashion ? "de duas combinações com a mesma peça" : "do produto em uso"}, depois mostraria um bastidor e responderia uma dúvida frequente.\n\nSão três formas de dar ao cliente um motivo para prestar atenção. Qual produto você quer destacar primeiro?`,
-  };
-  const answer = responses[type] || responses.ideia;
-  if (previousAnswer?.content === answer) return entryFor(text, 'Para mudar o resultado, me diga o que deseja alterar: o texto, o tom, a oferta ou o formato. Também posso aplicar uma troca específica, como “troque convite por oferta”.', type);
-  if (/\?|^(como|por que|porque|qual|quem|onde|quando)\b/i.test(text) && !/marketing|campanha|legenda|story|stories|roteiro|whatsapp|oferta|arte|ideia|divulga|viral|gancho|foto|produto/i.test(text)) return entryFor(text, 'Não tenho um modelo de linguagem ativo para responder a essa pergunta com segurança. Posso editar o texto que já criamos ou trabalhar na sua foto com as ferramentas locais.');
-  return entryFor(text, answer, type);
+  if (!mode && /\?|^(como|por que|porque|qual|quem|onde|quando)\b/i.test(text) && !/marketing|campanha|legenda|story|stories|roteiro|whatsapp|oferta|arte|ideia|divulga|viral|gancho|foto|produto|servi[cç]o|marca|venda|an[uú]ncio|p[uú]blico|cliente|conte[uú]do/i.test(text))
+    return entryFor(text, 'O modo local usa modelos editáveis e não compreende perguntas gerais. Descreva o que deseja divulgar ou escolha um tipo de conteúdo para montar um rascunho.');
+  if (mode !== 'arte') {
+    const starter = marketing.draft(text, state.brand, mode);
+    if (starter) return entryFor(text, starter.content, starter.type, { localTemplate: true });
+  }
+  return entryFor(text, 'Posso montar um anúncio com sua foto original, um título e o preço que você informar. Escolha “Criar anúncio”, anexe a foto e informe o título entre aspas e os dados reais da oferta. A montagem é feita no navegador, sem enviar a imagem.', 'arte');
 }
 generateContent = localConversation;
 // Paragraphs remain paragraphs; no artificial heading for every first sentence.
@@ -249,7 +204,7 @@ function appendMedia(article, entry) {
       figure.innerHTML = "";
       const img = document.createElement("img");
       img.src = data;
-      img.alt = "Imagem editada pelo Divulguiar";
+      img.alt = "Imagem editada pela DivulgaPro AI";
       const download = document.createElement("a");
       download.href = data;
       download.download = "divulguiar-anuncio.png";
@@ -298,7 +253,7 @@ renderHome = function (main) {
   const note = main.querySelector(".composer-note");
   note.textContent = state.apiReady
     ? "Revise os detalhes antes de publicar."
-    : "Modo local · Edição de fotos sem envio · Conversa limitada, sem modelo de IA.";
+    : "Modo local · Modelos editáveis, sem IA · Preencha os campos antes de publicar.";
   const tools = main.querySelector(".composer-tools");
   const photo = document.createElement("button");
   photo.type = "button";
@@ -373,6 +328,7 @@ async function requestAgent(prompt, image, mode) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       prompt,
+      mode,
       image,
       action: imageModes.has(mode) ? mode : "chat",
       brand,

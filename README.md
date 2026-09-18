@@ -1,4 +1,18 @@
-# Divulguiar
+# DivulgaPro AI
+
+## Atendimento DivulgaPro AI
+
+A identidade e as diretrizes de marketing estão em `divulgaia/divulgapro-policy.md`, carregadas pelo servidor em todas as gerações de texto. Incluem os 15 modos de atendimento, briefing de até cinco perguntas, formatos prontos, hipóteses explícitas e proibição de inventar preços, resultados, depoimentos ou urgência.
+
+O seletor de conteúdo oferece Estratégia, Conteúdo, Campanhas, Anúncios pagos, Vendas, Marca, Análise, Lançamento, Marketing local, Produto, Serviço, Ideias, Melhoria, Calendário e Diagnóstico, além dos formatos específicos existentes. O servidor recebe a seleção e preserva o contexto da marca e da conversa. O pedido explícito tem prioridade sobre o modo escolhido.
+
+**GitHub Pages:** publica a interface e os modelos locais editáveis de `divulgaia/marketing.js`. Esses modelos são determinísticos, usam campos para preencher e não interpretam livremente o pedido nem analisam perfis, imagens ou métricas. A interface identifica esse modo como “sem IA”. Revisões locais simples e edição de fotos continuam disponíveis. As chaves de armazenamento existentes foram mantidas para preservar conversas e biblioteca.
+
+**IA online:** exige executar `server.cjs` em hospedagem com Node.js e configurar `OPENAI_API_KEY` no servidor. O GitHub Pages não executa esse servidor. Nenhuma chave é incorporada ao build ou solicitada no navegador. A publicação no Pages, por si só, não ativa a IA online.
+
+Validação: `npm run test:core` verifica atendimento local, intenção, contexto enviado ao provedor, contratos HTTP e segurança, com provedor simulado, sem chamadas pagas. `npm run build` verifica sintaxe e gera `dist/`. O workflow de Pages executa ambos antes de publicar. O teste de navegador continua disponível em `npm test -- <playwright> <chromium>`; ele depende dessas ferramentas externas.
+
+As seções seguintes registram a arquitetura e a evolução visual do projeto, incluindo nomes anteriores da interface.
 
 ## Interface editorial — fluxo Ideia 2
 

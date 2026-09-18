@@ -200,7 +200,7 @@ function setDrawer(open) {
 render = function () {
   const app = document.getElementById("app");
   app.classList.toggle("collapsed", state.collapsed);
-  app.innerHTML = `<a href="#main" class="skip-link">Pular para o conteúdo</a><div class="drawer-backdrop" id="drawerBackdrop"></div><aside class="drawer" id="drawer" aria-label="Menu principal"><div class="drawer-head"><span class="mark">divulguiar<span style="color:#ff682c">.</span></span><button class="drawer-close" id="drawerClose" aria-label="Recolher menu">${icons.menu}</button></div><nav class="drawer-nav">${NAV.map((n, i) => `<button class="drawer-item ${state.active === n.label ? "active" : ""}" data-nav="${i}" title="${n.label}" aria-label="${n.label}" ${state.active === n.label ? 'aria-current="page"' : ""}><span class="ic">${icons[n.icon]}</span><span>${n.label}</span></button>`).join("")}</nav><div class="drawer-foot">Sua marca. Suas ideias.<br>Mais possibilidades todos os dias.</div></aside><header class="topbar"><div class="topbar-left"><button class="menu-btn" id="menuBtn" aria-label="Alternar menu" aria-controls="drawer">${icons.menu}</button><button class="brand-name icon-button" style="width:auto" id="brandNameBtn">${headerName()}</button></div><button class="welcome-pill" id="welcomeBtn">${welcomeText()}</button><div class="topbar-right"><button class="lib-link" id="libBtn" aria-label="Biblioteca">${icons.book}<span class="lbl">Biblioteca</span></button></div></header><main id="main" tabindex="-1"></main>`;
+  app.innerHTML = `<a href="#main" class="skip-link">Pular para o conteúdo</a><div class="drawer-backdrop" id="drawerBackdrop"></div><aside class="drawer" id="drawer" aria-label="Menu principal"><div class="drawer-head"><span class="mark">DivulgaPro<span style="color:#ff682c"> AI</span></span><button class="drawer-close" id="drawerClose" aria-label="Recolher menu">${icons.menu}</button></div><nav class="drawer-nav">${NAV.map((n, i) => `<button class="drawer-item ${state.active === n.label ? "active" : ""}" data-nav="${i}" title="${n.label}" aria-label="${n.label}" ${state.active === n.label ? 'aria-current="page"' : ""}><span class="ic">${icons[n.icon]}</span><span>${n.label}</span></button>`).join("")}</nav><div class="drawer-foot">Sua marca. Suas ideias.<br>Mais possibilidades todos os dias.</div></aside><header class="topbar"><div class="topbar-left"><button class="menu-btn" id="menuBtn" aria-label="Alternar menu" aria-controls="drawer">${icons.menu}</button><button class="brand-name icon-button" style="width:auto" id="brandNameBtn">${headerName()}</button></div><button class="welcome-pill" id="welcomeBtn">${welcomeText()}</button><div class="topbar-right"><button class="lib-link" id="libBtn" aria-label="Biblioteca">${icons.book}<span class="lbl">Biblioteca</span></button></div></header><main id="main" tabindex="-1"></main>`;
   const toggle = () => {
     if (innerWidth <= 760) setDrawer(!state.drawerOpen);
     else {
@@ -425,7 +425,7 @@ function drawMessages() {
     .map((m) =>
       m.role === "user"
         ? `<div class="message user">${escapeHtml(m.text)}${m.image ? `<br><img class="chat-image" src="${m.image}" alt="Produto enviado">` : ""}</div>`
-        : `<article class="message assistant" data-message="${m.entry.id}" aria-label="Resposta do agente"><span class="eyebrow">Divulguiar · Rascunho</span><div class="response-body">${formatResponse(m.visible ?? m.entry.content)}</div>${m.complete ? actions(m.entry.id) : ""}</article>`,
+        : `<article class="message assistant" data-message="${m.entry.id}" aria-label="Resposta do agente"><span class="eyebrow">DivulgaPro AI · Rascunho</span><div class="response-body">${formatResponse(m.visible ?? m.entry.content)}</div>${m.complete ? actions(m.entry.id) : ""}</article>`,
     )
     .join("");
   bindActions(slot);
@@ -688,11 +688,11 @@ renderPerfil = function (main) {
   };
 };
 headerName = () =>
-  escapeHtml(state.brand.name || state.brand.company || "Divulguiar");
+  escapeHtml(state.brand.name || state.brand.company || "DivulgaPro AI");
 welcomeText = () =>
   state.brand.name || state.brand.company
     ? "Bem-vindo, " + headerName()
-    : "Bem-vindo ao Divulguiar";
+    : "Bem-vindo à DivulgaPro AI";
 function renderCalculator(main) {
   main.innerHTML = `<div class="page"><div class="page-head"><div class="eyebrow">Calculadora</div><h2>Uma oferta que faz sentido.</h2><p>Confira a margem antes de anunciar.</p></div><form class="form-card" id="calc">${[
     ["cost", "Custo total (R$)"],

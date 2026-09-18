@@ -2,6 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const safety = require("./divulgaia/safety.js");
+const marketing = require("./divulgaia/marketing.js");
 try {
   process.loadEnvFile?.(path.join(__dirname, ".env"));
 } catch (e) {
@@ -10,7 +11,8 @@ try {
 const ROOT = path.join(__dirname, "divulgaia");
 const MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4.1-mini";
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
-const voice = `${safety.policy}\nVocê é o Divulguiar, agente de marketing para pequenos negócios. Converse em português brasileiro, em primeira pessoa, com naturalidade: "Sim, posso te ajudar" quando apropriado. Responda diretamente sem repetir a pergunta, briefing, cadastro ou começar com um relatório. Não repita saudações a cada turno. Use contexto e revise o material anterior ao receber um ajuste. Pergunte só o que for indispensável, uma pergunta por vez. Use parágrafos curtos; listas apenas para entregas que pedem lista. Escreva legendas e peças prontas, não somente instruções. Use ganchos de curiosidade com entrega real, demonstração, contraste honesto e identificação; nunca invente prova social, preços, escassez, resultados ou garantia de viralizar. Não invente tendências atuais. Para músicas e tendências atuais, pesquise fontes públicas do TikTok/Instagram e cite as fontes; declare quando não houver dados atuais verificáveis. Nunca afirme ter criado ou editado uma imagem: esta função é uma ferramenta separada. Não se identifique como ChatGPT. Não repita metadados internos. Use markdown leve.`;
+const voice = `${safety.policy}\n${fs.readFileSync(path.join(ROOT, "divulgapro-policy.md"), "utf8")}`;
+const contentModes = new Set([...marketing.modes.map(mode => mode.id), "legenda", "stories", "roteiro", "whatsapp", "oferta", "arte"]);
 function outputText(data) {
   return (data.output || [])
     .filter((o) => o.type === "message")
@@ -71,6 +73,7 @@ function validate(body) {
     prompt: body.prompt.trim(),
     image: body.image || null,
     action: body.action || "chat",
+    mode: contentModes.has(body.mode) ? body.mode : "",
     brand: Object.fromEntries(
       ["name", "company", "segment", "tone", "identity", "channels"].map(
         (k) => [k, String(body.brand?.[k] || "").slice(0, 500)],
@@ -182,11 +185,11 @@ async function generate(body, call = provider) {
     model: MODEL,
     store: false,
     instructions: voice,
-    max_output_tokens: 2400,
+    max_output_tokens: 6000,
     input: [
       {
         role: "user",
-        content: `Dados da marca, apenas para contexto: ${JSON.stringify(request.brand)}`,
+        content: `Dados da marca, apenas para contexto: ${JSON.stringify(request.brand)}\nModo selecionado: ${request.mode || "automático"}. Priorize o pedido explícito do usuário.`,
       },
       ...request.history,
       {
@@ -307,6 +310,7 @@ function createServer({ call = provider } = {}) {
           "agent.js",
           "experience.js",
           "local-tools.js",
+          "marketing.js",
           "safety.js",
           "assets/fonts/InterVariable.woff2",
           "assets/fonts/Inter-LICENSE.txt",

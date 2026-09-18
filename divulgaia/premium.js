@@ -95,9 +95,9 @@ render = function () {
     button.hidden = !premiumNavigation.has(NAV[Number(button.dataset.nav)].label);
   });
   const logo = document.querySelector(".drawer-head .mark");
-  if (logo) logo.innerHTML = 'divulguia<span style="color:#ff682c">.</span>';
-  document.querySelector("#brandNameBtn").textContent = "Divulguia";
-  document.querySelector("#welcomeBtn").innerHTML = '<span class="welcome-dot" aria-hidden="true"></span>Bem-vindo ao Divulguia<span aria-hidden="true">⌄</span>';
+  if (logo) logo.innerHTML = 'DivulgaPro<span style="color:#ff682c"> AI</span>';
+  document.querySelector("#brandNameBtn").textContent = "DivulgaPro AI";
+  document.querySelector("#welcomeBtn").innerHTML = '<span class="welcome-dot" aria-hidden="true"></span>Bem-vindo à DivulgaPro AI<span aria-hidden="true">⌄</span>';
 };
 // Animate each message once; streaming redraws must not restart entrance effects.
 const premiumDrawBase = drawMessages;
@@ -168,7 +168,7 @@ function enhanceEditorialHome(main) {
   const input = main.querySelector("#createInput");
   input.rows = 1;
   input.style.height = "auto";
-  if (!state.apiReady) main.querySelector(".composer-note").textContent = "Modo local  Edição de fotos sem envio  Conversa limitada, sem modelo de IA.";
+  if (!state.apiReady) main.querySelector(".composer-note").textContent = "Modo local · Modelos editáveis, sem IA · Preencha os campos antes de publicar.";
   input.addEventListener("focus", syncEditorialState);
   input.addEventListener("blur", syncEditorialState);
   input.addEventListener("input", syncEditorialState);
